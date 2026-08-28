@@ -21,62 +21,66 @@ export default function SiteHeader() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex items-start justify-between px-5 pt-5 sm:px-8 sm:pt-7">
-        <Link href="/" aria-label="Carnaval of Screams — home" className="block">
-          <Image
-            src="/images/cos-logo.webp"
-            alt="Carnaval of Screams"
-            width={480}
-            height={221}
-            priority
-            className="h-10 w-auto sm:h-12"
-          />
-        </Link>
+      <header className="fixed inset-x-0 top-0 z-40 px-5 pt-5 sm:px-8 sm:pt-7">
+        <div className="mx-auto flex max-w-6xl items-start justify-between">
+          <Link href="/" aria-label="Carnaval of Screams — home" className="block">
+            <Image
+              src="/images/cos-logo-gold.webp"
+              alt="Carnaval of Screams"
+              width={900}
+              height={367}
+              priority
+              className="h-10 w-auto sm:h-12"
+            />
+          </Link>
 
-        <div className="text-right font-heading">
-          <p className="text-[11px] tracking-[0.25em] text-gold-bright sm:text-sm">
-            31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
-          </p>
-          <p className="mt-1 text-[9px] tracking-[0.2em] text-mist/70 sm:text-[11px]">
-            YOGYAKARTA, INDONESIA
-          </p>
+          <div className="text-right font-heading">
+            <p className="text-[11px] tracking-[0.25em] text-gold-bright sm:text-sm">
+              31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
+            </p>
+            <p className="mt-1 text-[9px] tracking-[0.2em] text-mist/70 sm:text-[11px]">
+              YOGYAKARTA, INDONESIA
+            </p>
+          </div>
         </div>
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between px-5 pb-5 sm:px-8 sm:pb-7">
-        <a
-          href="#tickets"
-          className="btn-press rounded-full bg-gradient-to-r from-purple to-pink px-5 py-3 font-heading text-[11px] font-semibold tracking-[0.15em] text-white shadow-[0_0_30px_-8px_rgba(156,111,240,0.8)] sm:px-6 sm:text-xs"
-        >
-          GET YOUR TICKETS
-        </a>
+      <div className="fixed inset-x-0 bottom-0 z-40 px-5 pb-5 sm:px-8 sm:pb-7">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <a
+            href="#tickets"
+            className="btn-press rounded-full bg-gradient-to-r from-purple to-pink px-5 py-3 font-heading text-[11px] font-semibold tracking-[0.15em] text-white shadow-[0_0_30px_-8px_rgba(156,111,240,0.8)] sm:px-6 sm:text-xs"
+          >
+            GET YOUR TICKETS
+          </a>
 
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          className="btn-press flex h-11 w-11 flex-col items-center justify-center gap-[5px] rounded-full border border-white/15 bg-black/40 backdrop-blur-sm"
-        >
-          <span
-            className="h-[1.5px] w-5 bg-gold-bright transition-transform duration-200"
-            style={{
-              transform: open
-                ? "translateY(3.25px) rotate(45deg)"
-                : "none",
-              transitionTimingFunction: "var(--ease-out-strong)",
-            }}
-          />
-          <span
-            className="h-[1.5px] w-5 bg-gold-bright transition-transform duration-200"
-            style={{
-              transform: open
-                ? "translateY(-3.25px) rotate(-45deg)"
-                : "none",
-              transitionTimingFunction: "var(--ease-out-strong)",
-            }}
-          />
-        </button>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            className="btn-press flex h-11 w-11 flex-col items-center justify-center gap-[5px] rounded-full border border-white/15 bg-black/40 backdrop-blur-sm"
+          >
+            <span
+              className="h-[1.5px] w-5 bg-gold-bright transition-transform duration-200"
+              style={{
+                transform: open
+                  ? "translateY(3.25px) rotate(45deg)"
+                  : "none",
+                transitionTimingFunction: "var(--ease-out-strong)",
+              }}
+            />
+            <span
+              className="h-[1.5px] w-5 bg-gold-bright transition-transform duration-200"
+              style={{
+                transform: open
+                  ? "translateY(-3.25px) rotate(-45deg)"
+                  : "none",
+                transitionTimingFunction: "var(--ease-out-strong)",
+              }}
+            />
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
