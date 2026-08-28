@@ -35,8 +35,8 @@ export default function Hero() {
         className="relative z-10 mt-4 w-full max-w-4xl sm:mt-6"
       >
         <Image
-          src="/images/chariot-wordmark-v2.webp"
-          alt="Carnaval of Screams — Chariot"
+          src="/images/cos-logo-gold.webp"
+          alt="Carnaval of Screams"
           width={1800}
           height={390}
           priority
@@ -60,7 +60,7 @@ export default function Hero() {
         initial="hidden"
         animate="show"
         custom={0.55}
-        className="btn-press relative z-10 mt-10 rounded-full bg-gradient-to-r from-purple via-purple-deep to-pink px-10 py-5 font-heading text-sm font-semibold tracking-[0.2em] text-white shadow-[0_0_50px_-10px_rgba(156,111,240,0.9)] sm:mt-12 sm:px-14 sm:py-6 sm:text-base"
+        className="btn-press relative z-10 mt-10 rounded-full bg-black border-white/15 border px-10 py-5 font-heading text-sm font-semibold tracking-[0.2em] text-white shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] sm:mt-12 sm:px-14 sm:py-6 sm:text-base"
       >
         BLIND TICKET — CARNAVAL OF SCREAMS 2026
       </motion.a>

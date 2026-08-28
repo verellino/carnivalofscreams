@@ -46,10 +46,10 @@ export default function SiteHeader() {
       </header>
 
       <div className="fixed inset-x-0 bottom-0 z-40 px-5 pb-5 sm:px-8 sm:pb-7">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <div className="mx-auto flex w-fit items-center justify-between">
           <a
             href="#tickets"
-            className="btn-press rounded-full bg-gradient-to-r from-purple to-pink px-5 py-3 font-heading text-[11px] font-semibold tracking-[0.15em] text-white shadow-[0_0_30px_-8px_rgba(156,111,240,0.8)] sm:px-6 sm:text-xs"
+            className="btn-press h-11 rounded-full bg-black border-white/15 border mr-4 px-5 py-3 font-heading text-[11px] font-semibold tracking-[0.15em] text-white shadow-[0_0_30px_-8px_rgba(255,255,255,0.8)] sm:px-6 sm:text-xs"
           >
             GET YOUR TICKETS
           </a>
