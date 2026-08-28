@@ -16,9 +16,9 @@ const item = {
   }),
 };
 
-export default function Hero() {
+export default function Splash() {
   return (
-    <section className="relative bg-ink flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-40 pt-32 text-center sm:pb-44">
+    <section className="relative bg-ink flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
       <Starfield className="absolute inset-0 z-0 h-full w-full" />
 
       <motion.p
@@ -39,7 +39,7 @@ export default function Hero() {
         className="relative z-10 mt-4 w-full max-w-4xl sm:mt-6"
       >
         <Image
-          src="/images/cos-logo-gold.webp"
+          src="/images/LOGO-COS-2026.webp"
           alt="Carnaval of Screams"
           width={1800}
           height={390}
@@ -58,16 +58,15 @@ export default function Hero() {
         YOGYAKARTA, INDONESIA
       </motion.p>
 
-      <motion.a
-        href="#tickets"
+      <motion.p
         variants={item}
         initial="hidden"
         animate="show"
         custom={0.55}
-        className="btn-press relative z-10 mt-10 rounded-full bg-black border-white/15 border px-10 py-5 font-heading text-sm font-semibold tracking-[0.2em] text-white shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] sm:mt-12 sm:px-14 sm:py-6 sm:text-base"
+        className="relative z-10 mt-6 font-heading text-[11px] tracking-[0.4em] text-white/80 sm:mt-8 sm:text-sm sm:tracking-[0.5em]"
       >
-        BLIND TICKET — CARNAVAL OF SCREAMS 2026
-      </motion.a>
+        31<sup className="text-[0.6em]">ST</sup> OCTOBER — 1<sup className="text-[0.6em]">ST</sup> NOVEMBER 2026
+      </motion.p>
     </section>
   );
 }
