@@ -1,26 +1,117 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #050308;
+  --ink-soft: #0d0714;
+  --gold: #d9a94f;
+  --gold-bright: #f3cf8a;
+  --purple: #9c6ff0;
+  --purple-deep: #5b3a9c;
+  --pink: #ec4899;
+  --mist: #cdbfe0;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-purple: var(--purple);
+  --color-purple-deep: var(--purple-deep);
+  --color-pink: var(--pink);
+  --color-mist: var(--mist);
+  --font-heading: var(--font-heading);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink);
+  color: var(--mist);
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.starfield {
+  isolation: isolate;
+  background-color: var(--ink);
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 25% 65%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 80%, #fff, transparent),
+    radial-gradient(2px 2px at 70% 35%, #fff, transparent),
+    radial-gradient(1px 1px at 85% 55%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 95% 10%, #fff, transparent),
+    radial-gradient(1px 1px at 15% 90%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 60% 5%, #fff, transparent),
+    radial-gradient(1px 1px at 33% 45%, #fff, transparent),
+    radial-gradient(1px 1px at 80% 85%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 5% 55%, #fff, transparent);
+  background-repeat: repeat;
+  background-size: 420px 420px;
+  animation: drift-stars 140s linear infinite;
+  opacity: 1;
+}
+
+.starfield::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at 50% 38%,
+    rgba(92, 42, 122, 0.35) 0%,
+    rgba(92, 42, 122, 0.12) 32%,
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+.starfield::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  pointer-events: none;
+}
+
+@keyframes drift-stars {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -420px 420px;
+  }
+}
+
+.btn-press {
+  transition-property: transform;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out-strong);
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .starfield {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
