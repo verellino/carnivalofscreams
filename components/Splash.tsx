@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 
-import Starfield from "./Starfield";
+import VideoBackground from "./VideoBackground";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
@@ -18,8 +18,8 @@ const item = {
 
 export default function Splash() {
   return (
-    <section className="relative bg-ink flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
-      <Starfield className="absolute inset-0 z-0 h-full w-full" />
+    <section className="relative flex h-[100svh] w-full flex-col items-center justify-center overflow-hidden bg-ink px-6 text-center">
+      <VideoBackground className="absolute inset-0 z-0" />
 
       <motion.p
         variants={item}
@@ -36,13 +36,14 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.25}
-        className="relative z-10 mt-4 w-full max-w-4xl sm:mt-6"
+        className="relative z-10 mt-4 w-full sm:mt-6"
+        style={{ maxWidth: "min(86vw, 620px, calc(32svh * 1.81))" }}
       >
         <Image
-          src="/images/LOGO-COS-2026.webp"
+          src="/images/LOGO-COS-2026-trimmed.webp"
           alt="Carnaval of Screams"
-          width={1800}
-          height={390}
+          width={2281}
+          height={1258}
           priority
           className="h-auto w-full [mask-image:radial-gradient(ellipse_78%_70%_at_50%_50%,black_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_78%_70%_at_50%_50%,black_55%,transparent_100%)]"
         />
@@ -53,9 +54,9 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.4}
-        className="relative z-10 mt-2 font-heading text-xs tracking-[0.5em] text-gold-bright sm:mt-4 sm:text-lg"
+        className="relative z-10 mt-2 font-heading text-xs tracking-[0.4em] text-white sm:mt-4 sm:text-lg sm:tracking-[0.5em]"
       >
-        YOGYAKARTA, INDONESIA
+        31<sup className="text-[0.6em]">ST</sup> OCTOBER — 1<sup className="text-[0.6em]">ST</sup> NOVEMBER 2026
       </motion.p>
 
       <motion.p
@@ -63,9 +64,9 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.55}
-        className="relative z-10 mt-6 font-heading text-[11px] tracking-[0.4em] text-white/80 sm:mt-8 sm:text-sm sm:tracking-[0.5em]"
+        className="relative z-10 mt-3 font-heading text-[10px] tracking-[0.35em] text-white/70 sm:mt-4 sm:text-xs sm:tracking-[0.45em]"
       >
-        31<sup className="text-[0.6em]">ST</sup> OCTOBER — 1<sup className="text-[0.6em]">ST</sup> NOVEMBER 2026
+        YOGYAKARTA, INDONESIA
       </motion.p>
     </section>
   );
