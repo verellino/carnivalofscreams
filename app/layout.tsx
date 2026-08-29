@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Carnaval of Screams",
   description:
-    "Indonesia's greatest Halloween festival. Two nights of masks, music and mayhem in Yogyakarta, 31 October to 1 November 2026.",
+    "Indonesia's greatest Halloween festival. Two nights of masks, music and mayhem in Yogyakarta, 30 to 31 October 2026.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

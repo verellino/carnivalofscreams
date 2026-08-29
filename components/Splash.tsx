@@ -56,7 +56,7 @@ export default function Splash() {
         custom={0.4}
         className="relative z-10 mt-2 font-heading text-xs tracking-[0.4em] text-white sm:mt-4 sm:text-lg sm:tracking-[0.5em]"
       >
-        31<sup className="text-[0.6em]">ST</sup> OCTOBER — 1<sup className="text-[0.6em]">ST</sup> NOVEMBER 2026
+        30<sup className="text-[0.6em]">TH</sup> — 31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
       </motion.p>
 
       <motion.p

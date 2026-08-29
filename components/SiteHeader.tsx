@@ -36,7 +36,7 @@ export default function SiteHeader() {
 
           <div className="text-right font-heading">
             <p className="text-[11px] tracking-[0.25em] text-gold-bright sm:text-sm">
-              31<sup className="text-[0.6em]">ST</sup> OCT — 1<sup className="text-[0.6em]">ST</sup> NOV 2026
+              30<sup className="text-[0.6em]">TH</sup> — 31<sup className="text-[0.6em]">ST</sup> OCT 2026
             </p>
             <p className="mt-1 text-[9px] tracking-[0.2em] text-mist/70 sm:text-[11px]">
               YOGYAKARTA, INDONESIA
