@@ -12,7 +12,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Carnaval of Screams",
+  title: {
+    default: "Carnaval of Screams",
+    template: "%s · Carnaval of Screams",
+  },
   description:
     "Indonesia's greatest Halloween festival. Two nights of masks, music and mayhem in Yogyakarta, 30 to 31 October 2026.",
 };

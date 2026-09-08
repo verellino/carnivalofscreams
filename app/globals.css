@@ -146,14 +146,18 @@ h6 {
   z-index: 1;
   white-space: nowrap;
   letter-spacing: 0.12em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: color var(--tabs-dur) var(--tabs-ease);
 }
 
-.t-tab:not([aria-selected="true"]):hover {
+.t-tab:not([aria-current="page"]):hover {
   color: #ffffff;
 }
 
-.t-tab[aria-selected="true"] {
+.t-tab[aria-current="page"] {
   color: var(--tabs-text-active);
 }
 

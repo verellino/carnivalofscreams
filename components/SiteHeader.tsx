@@ -1,17 +1,27 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useCallback, useLayoutEffect, useRef } from "react";
+
+import { TICKETS_URL } from "@/lib/site";
 
 const NAV_LINKS = [
-  { label: "Home", href: "/dev" },
-  { label: "Ticket", href: "#" },
-  { label: "Reservation", href: "#" },
+  { label: "Home", href: "/" },
+  { label: "Ticket", href: TICKETS_URL, external: true },
+  { label: "Reservation", href: "/reserve" },
 ] as const;
 
+function isActive(pathname: string, href: string, external?: boolean) {
+  if (external) return false;
+  if (href === "/") return pathname === "/" || pathname.startsWith("/dev");
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function SiteHeader() {
+  const pathname = usePathname();
   const barRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLSpanElement>(null);
-  const [active, setActive] = useState(0);
 
   const moveTo = useCallback((tab: HTMLElement, animate: boolean) => {
     const pill = pillRef.current;
@@ -45,7 +55,7 @@ export default function SiteHeader() {
   const moveToActive = useCallback(
     (animate: boolean) => {
       const tab = barRef.current?.querySelector<HTMLElement>(
-        '.t-tab[aria-selected="true"]',
+        '.t-tab[aria-current="page"]',
       );
       if (!tab) return;
       moveTo(tab, animate);
@@ -70,52 +80,47 @@ export default function SiteHeader() {
       observer.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [moveToActive]);
-
-  function select(index: number) {
-    setActive(index);
-    const tab = barRef.current?.querySelectorAll<HTMLElement>(".t-tab")[index];
-    if (!tab) return;
-    moveTo(tab, true);
-    scrollTabIntoView(tab, true);
-  }
+  }, [moveToActive, pathname]);
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-100 flex justify-center pt-8">
       <div
         ref={barRef}
         className="t-tabs pointer-events-auto border border-white/30 shadow-[0px_2px_48px_0px_rgba(217,169,79,0.25)]"
-        role="tablist"
+        role="navigation"
         aria-label="Site"
-        onKeyDown={(event) => {
-          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-          event.preventDefault();
-          const tabs = [
-            ...(barRef.current?.querySelectorAll<HTMLElement>(".t-tab") ?? []),
-          ];
-          const current = tabs.findIndex(
-            (tab) => tab.getAttribute("aria-selected") === "true",
-          );
-          const delta = event.key === "ArrowRight" ? 1 : -1;
-          const next = (current + delta + tabs.length) % tabs.length;
-          select(next);
-          tabs[next]?.focus();
-        }}
       >
         <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
-        {NAV_LINKS.map((link, index) => (
-          <button
-            key={link.label}
-            type="button"
-            className="t-tab font-heading flex items-center text-center text-[11px] md:text-sm"
-            role="tab"
-            aria-selected={active === index}
-            tabIndex={active === index ? 0 : -1}
-            onClick={() => select(index)}
-          >
-            {link.label}
-          </button>
-        ))}
+        {NAV_LINKS.map((link) => {
+          const current = isActive(pathname, link.href, "external" in link);
+          const className =
+            "t-tab font-heading flex items-center text-center text-[11px] md:text-sm";
+
+          if ("external" in link) {
+            return (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                {link.label}
+              </a>
+            );
+          }
+
+          return (
+            <Link
+              key={link.label}
+              href={link.href}
+              className={className}
+              aria-current={current ? "page" : undefined}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
     </header>
   );
