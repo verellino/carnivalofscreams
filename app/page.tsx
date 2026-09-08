@@ -1,9 +1,14 @@
-import Splash from "@/components/Splash";
+import Hero from "@/components/Hero";
+import SiteFooter from "@/components/SiteFooter";
+import SiteHeader from "@/components/SiteHeader";
 
-export default function Home() {
+export default function DevHome() {
   return (
-    <main className="flex flex-1 flex-col bg-ink">
-      <Splash />
-    </main>
+    <div className="flex flex-1 flex-col bg-ink">
+      <SiteHeader />
+      <main className="flex flex-1 flex-col">
+        <Hero />
+      </main>
+    </div>
   );
 }
