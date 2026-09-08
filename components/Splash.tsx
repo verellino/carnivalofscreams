@@ -28,7 +28,7 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.1}
-        className="relative z-10 font-heading text-[11px] tracking-[0.45em] text-white/80 sm:text-base sm:tracking-[0.6em]"
+        className="relative z-10 font-heading text-[11px] tracking-widest text-white/80 sm:text-base"
       >
         THE GREATEST HALLOWEEN FESTIVAL
       </motion.p>
@@ -56,7 +56,7 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.4}
-        className="relative z-10 mt-2 font-heading text-xs tracking-[0.4em] text-white sm:mt-4 sm:text-lg sm:tracking-[0.5em]"
+        className="relative z-10 mt-2 font-heading text-base tracking-widest text-white sm:mt-4 sm:text-2xl"
       >
         30<sup className="text-[0.6em]">TH</sup> — 31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
       </motion.p>
@@ -66,7 +66,7 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.55}
-        className="relative z-10 mt-3 font-heading text-[10px] tracking-[0.35em] text-white/70 sm:mt-4 sm:text-xs sm:tracking-[0.45em]"
+        className="relative z-10 mt-3 font-heading text-sm tracking-widest text-white/70 sm:mt-4 sm:text-base"
       >
         YOGYAKARTA, INDONESIA
       </motion.p>
@@ -79,7 +79,7 @@ export default function Splash() {
         initial="hidden"
         animate="show"
         custom={0.7}
-        className="btn-press relative z-10 mt-8 inline-flex items-center justify-center whitespace-nowrap rounded-full border border-white/15 bg-black px-10 py-4 font-heading text-sm font-semibold tracking-[0.22em] text-white shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] transition-shadow duration-200 hover:shadow-[0_0_64px_-8px_rgba(255,255,255,1)] sm:mt-10 sm:px-16 sm:py-5 sm:text-lg sm:tracking-[0.28em]"
+        className="btn-press relative z-10 mt-8 inline-flex items-center justify-center whitespace-nowrap rounded-full border border-white/15 bg-white px-10 py-4 font-heading text-sm font-semibold tracking-widest text-black shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] transition-shadow duration-200 hover:shadow-[0_0_64px_-8px_rgba(255,255,255,1)] sm:mt-10 sm:px-16 sm:py-5 sm:text-lg sm:tracking-widest"
       >
         GET YOUR TICKETS
       </motion.a>
