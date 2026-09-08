@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { angie } from "./fonts";
 import "./globals.css";
 
 // og:image has to be an absolute URL. Without this Next falls back to the
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${angie.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

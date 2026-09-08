@@ -10,10 +10,15 @@
   --pink: #ec4899;
   --mist: #cdbfe0;
 
-  --font-heading: Helvetica, "Helvetica Neue", Arial, sans-serif;
-
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-text-muted: rgba(205, 191, 224, 0.75);
+  --tabs-text-active: #050308;
+  --tabs-bar-bg: rgba(5, 3, 8, 0.72);
+  --tabs-pill-bg: #ffffff;
 }
 
 @theme inline {
@@ -25,7 +30,7 @@
   --color-purple-deep: var(--purple-deep);
   --color-pink: var(--pink);
   --color-mist: var(--mist);
-  --font-heading: var(--font-heading);
+  --font-heading: var(--font-angie);
 }
 
 html {
@@ -36,6 +41,16 @@ body {
   background: var(--ink);
   color: var(--mist);
   font-family: Helvetica, Arial, sans-serif;
+}
+
+.font-heading,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 
 .font-heading {
@@ -100,6 +115,76 @@ body {
   }
 }
 
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 48px;
+  background: var(--tabs-bar-bg);
+  backdrop-filter: blur(16px);
+  max-width: calc(100vw - 1.5rem);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.t-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.t-tab {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 32px;
+  padding: 4px 10px;
+  color: var(--tabs-text-muted);
+  cursor: pointer;
+  border-radius: 48px;
+  z-index: 1;
+  white-space: nowrap;
+  letter-spacing: 0.12em;
+  transition: color var(--tabs-dur) var(--tabs-ease);
+}
+
+.t-tab:not([aria-selected="true"]):hover {
+  color: #ffffff;
+}
+
+.t-tab[aria-selected="true"] {
+  color: var(--tabs-text-active);
+}
+
+.t-tabs-pill {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: 32px;
+  width: 0;
+  background: var(--tabs-pill-bg);
+  border-radius: 48px;
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .t-tab {
+    height: 36px;
+    padding: 4px 16px;
+  }
+
+  .t-tabs-pill {
+    height: 36px;
+  }
+}
+
 .btn-press {
   transition-property: transform;
   transition-duration: 160ms;
@@ -113,6 +198,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .starfield {
     animation: none;
+  }
+  .t-tabs-pill,
+  .t-tab {
+    transition: none !important;
   }
   * {
     animation-duration: 0.01ms !important;
