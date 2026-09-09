@@ -5,8 +5,6 @@ import { motion } from "motion/react";
 
 import VideoBackground from "./VideoBackground";
 
-const TICKETS_URL = "https://artatix.co.id/event/carnval_of_scream_2026";
-
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 const item = {
@@ -73,9 +71,7 @@ export default function Hero() {
 
     <div className="flex flex-col sm:flex-row gap-4 mt-12">
       <motion.a
-        href={TICKETS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+        href="#tickets"
         variants={item}
         initial="hidden"
         animate="show"

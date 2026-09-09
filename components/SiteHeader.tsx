@@ -4,16 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef } from "react";
 
-import { TICKETS_URL } from "@/lib/site";
-
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Ticket", href: TICKETS_URL, external: true },
+  { label: "Gallery", href: "/gallery" },
+  { label: "Ticket", href: "/#tickets" },
   { label: "Reservation", href: "/reserve" },
 ] as const;
 
-function isActive(pathname: string, href: string, external?: boolean) {
-  if (external) return false;
+function isActive(pathname: string, href: string) {
+  if (href.includes("#")) return false;
   if (href === "/") return pathname === "/" || pathname.startsWith("/dev");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -92,29 +91,12 @@ export default function SiteHeader() {
       >
         <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
         {NAV_LINKS.map((link) => {
-          const current = isActive(pathname, link.href, "external" in link);
-          const className =
-            "t-tab font-heading flex items-center text-center text-[11px] md:text-sm";
-
-          if ("external" in link) {
-            return (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={className}
-              >
-                {link.label}
-              </a>
-            );
-          }
-
+          const current = isActive(pathname, link.href);
           return (
             <Link
               key={link.label}
               href={link.href}
-              className={className}
+              className="t-tab font-heading flex items-center text-center text-[11px] md:text-sm"
               aria-current={current ? "page" : undefined}
             >
               {link.label}
