@@ -154,7 +154,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
 
       <form onSubmit={onSubmit} className="flex flex-col gap-8">
         <fieldset className="min-w-0">
-          <legend className="font-heading text-sm tracking-[0.22em] text-gold-bright">
+          <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
             Choose a night
           </legend>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -165,8 +165,8 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
                   key={night.id}
                   className={`cursor-pointer border px-4 py-3 text-center transition-colors ${
                     selected
-                      ? "border-gold bg-gold/15 text-white"
-                      : "border-white/15 bg-black/30 text-mist hover:border-white/35"
+                      ? "border-white/80 bg-white/10 text-white"
+                      : "border-white/15 bg-black/30 text-white/55 hover:border-white/35"
                   }`}
                 >
                   <input
@@ -187,7 +187,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
         </fieldset>
 
         <fieldset className="min-w-0">
-          <legend className="font-heading text-sm tracking-[0.22em] text-gold-bright">
+          <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
             Choose a table
           </legend>
           <div className="mt-3 flex flex-col gap-2">
@@ -198,7 +198,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
                   key={pack.id}
                   className={`cursor-pointer border p-4 transition-colors ${
                     selected
-                      ? "border-gold bg-gold/12"
+                      ? "border-white/80 bg-white/10"
                       : "border-white/15 bg-black/30 hover:border-white/35"
                   }`}
                 >
@@ -217,11 +217,11 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
                     <span className="font-heading text-sm tracking-[0.16em] text-white sm:text-base">
                       {pack.name}
                     </span>
-                    <span className="font-heading text-sm tracking-widest text-gold-bright">
+                    <span className="font-heading text-sm tracking-[0.12em] text-white">
                       {formatIdr(pack.priceIdr)}
                     </span>
                   </span>
-                  <span className="mt-1 block text-sm text-mist/80">
+                  <span className="mt-1 block text-sm text-white/55">
                     {pack.seats} seats · {pack.blurb}
                   </span>
                 </label>
@@ -232,7 +232,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-2 sm:col-span-2">
-            <span className="font-heading text-xs tracking-[0.2em] text-mist/80">
+            <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
               Full name
             </span>
             <input
@@ -241,11 +241,11 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
               autoComplete="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-gold"
+              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-white/70"
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="font-heading text-xs tracking-[0.2em] text-mist/80">
+            <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
               Email
             </span>
             <input
@@ -255,11 +255,11 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-gold"
+              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-white/70"
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="font-heading text-xs tracking-[0.2em] text-mist/80">
+            <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
               Phone
             </span>
             <input
@@ -271,11 +271,11 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
               placeholder="0812…"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-gold"
+              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-white/70"
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="font-heading text-xs tracking-[0.2em] text-mist/80">
+            <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
               Party size
             </span>
             <input
@@ -293,12 +293,12 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
                   ),
                 )
               }
-              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-gold"
+              className="border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-white/70"
             />
           </label>
           <label className="flex flex-col gap-2 sm:col-span-2">
-            <span className="font-heading text-xs tracking-[0.2em] text-mist/80">
-              Notes <span className="text-mist/40">(optional)</span>
+            <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
+              Notes <span className="text-white/30">(optional)</span>
             </span>
             <textarea
               name="notes"
@@ -306,13 +306,17 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
               maxLength={400}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              className="resize-y border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-gold"
+              className="resize-y border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition-colors focus:border-white/70"
             />
           </label>
         </div>
 
         {error ? (
-          <p role="alert" className="text-sm text-pink">
+          <p
+            role="alert"
+            className="inline-flex items-center gap-2 text-sm text-white/70"
+          >
+            <span className="pass-signal" aria-hidden="true" />
             {error}
           </p>
         ) : null}
@@ -320,7 +324,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
         <button
           type="submit"
           disabled={busy || !clientKey}
-          className="btn-press inline-flex items-center justify-center rounded-full border border-white/15 bg-white px-10 py-4 font-heading text-sm font-semibold tracking-widest text-black shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] transition-shadow duration-200 hover:shadow-[0_0_64px_-8px_rgba(255,255,255,1)] disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+          className="btn-press inline-flex items-center justify-center border border-white/80 bg-white px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black sm:text-xs"
         >
           {busy
             ? "Opening payment…"
@@ -328,12 +332,13 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
         </button>
 
         {!clientKey ? (
-          <p className="text-sm text-mist/70">
+          <p className="inline-flex items-center gap-2 text-sm text-white/55">
+            <span className="pass-signal" aria-hidden="true" />
             Midtrans client key is missing. Add it to the environment before
             taking payments.
           </p>
         ) : (
-          <p className="text-xs leading-relaxed text-mist/55">
+          <p className="text-xs leading-relaxed text-white/40">
             You will pay through Midtrans. After the transfer clears, we confirm
             your table by email.
           </p>

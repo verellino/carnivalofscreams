@@ -113,28 +113,28 @@ export default async function ReservationConfirmedPage({
   const pending = isPendingStatus(status.transaction_status);
 
   const details = (
-    <ul className="mt-8 space-y-2 text-sm text-mist/80">
+    <ul className="mt-8 space-y-2 text-sm text-white/65">
       <li>
-        <span className="text-mist/50">Order</span> {orderId}
+        <span className="text-white/40">Order</span> {orderId}
       </li>
       {summary.night ? (
         <li>
-          <span className="text-mist/50">Night</span> {summary.night.label}
+          <span className="text-white/40">Night</span> {summary.night.label}
         </li>
       ) : null}
       {summary.table ? (
         <li>
-          <span className="text-mist/50">Table</span> {summary.table.name}
+          <span className="text-white/40">Table</span> {summary.table.name}
         </li>
       ) : null}
       {summary.partySize ? (
         <li>
-          <span className="text-mist/50">Party</span> {summary.partySize}
+          <span className="text-white/40">Party</span> {summary.partySize}
         </li>
       ) : null}
       {summary.amountLabel ? (
         <li>
-          <span className="text-mist/50">Amount</span> {summary.amountLabel}
+          <span className="text-white/40">Amount</span> {summary.amountLabel}
         </li>
       ) : null}
     </ul>
@@ -146,7 +146,7 @@ export default async function ReservationConfirmedPage({
         kicker="Payment received"
         title="Your table is held."
         body="We will confirm your reservation by email. Bring the order number to the door."
-        action={{ href: "/", label: "Back to the carnival" }}
+        action={{ href: "/", label: "Back home" }}
       >
         {details}
       </StatusShell>
@@ -192,23 +192,23 @@ function StatusShell({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="starfield relative isolate min-h-[70vh] overflow-hidden">
-      <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col px-6 pb-20 pt-36 text-center">
-        <p className="font-heading text-xs tracking-[0.35em] text-gold-bright">
-          {kicker}
-        </p>
-        <h1 className="mt-4 font-heading text-4xl tracking-[0.08em] text-white">
-          {title}
-        </h1>
-        <p className="mt-4 text-base leading-relaxed text-mist/80">{body}</p>
-        {children}
-        <Link
-          href={action.href}
-          className="btn-press mt-10 inline-flex items-center justify-center self-center rounded-full border border-white/15 bg-white px-10 py-4 font-heading text-sm font-semibold tracking-widest text-black"
-        >
-          {action.label}
-        </Link>
-      </div>
+    <div className="mx-auto flex min-h-[70vh] w-full max-w-xl flex-col px-6 pb-28 pt-24 text-center sm:pt-32">
+      <p className="font-heading text-[11px] tracking-[0.42em] text-white/55 sm:text-xs">
+        {kicker}
+      </p>
+      <h1 className="pass-title mt-5 font-heading text-4xl tracking-[0.14em] text-white sm:text-5xl">
+        {title}
+      </h1>
+      <p className="mt-6 text-sm leading-relaxed text-white/55 sm:text-base">
+        {body}
+      </p>
+      {children}
+      <Link
+        href={action.href}
+        className="btn-press mt-10 inline-flex items-center justify-center self-center border border-white/80 bg-white px-8 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white"
+      >
+        {action.label}
+      </Link>
     </div>
   );
 }

@@ -130,6 +130,8 @@ Dates stay concrete (Friday 30 Oct / Saturday 31 Oct 2026). Venue is Tip Tap Toe
 | Display font | `app/fonts.ts` → `public/fonts/Angie-Regular.ttf` |
 | Hero | `components/Hero.tsx`, `components/VideoBackground.tsx` |
 | Tickets | `components/Tickets.tsx`, `lib/tickets.ts` |
+| Reserve | `app/reserve/`, `components/ReserveForm.tsx`, `components/FloorPlanPlaceholder.tsx` |
+| Ground | `components/ArrivalGround.tsx` |
 | Sky | `components/Starfield.tsx` (WebGL), `.starfield` (CSS) |
 | Checkout | `lib/site.ts` → `TICKETS_URL` |
 

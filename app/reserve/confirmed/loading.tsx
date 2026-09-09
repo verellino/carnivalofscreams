@@ -1,14 +1,12 @@
 export default function ConfirmedLoading() {
   return (
-    <div className="starfield relative isolate min-h-[70vh]">
-      <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col items-center px-6 pb-20 pt-36 text-center">
-        <p className="font-heading text-xs tracking-[0.35em] text-gold-bright">
-          Reservation
-        </p>
-        <h1 className="mt-4 font-heading text-4xl tracking-[0.08em] text-white">
-          Checking payment…
-        </h1>
-      </div>
+    <div className="mx-auto flex min-h-[70vh] w-full max-w-xl flex-col items-center px-6 pb-28 pt-24 text-center sm:pt-32">
+      <p className="font-heading text-[11px] tracking-[0.42em] text-white/55 sm:text-xs">
+        Reservation
+      </p>
+      <h1 className="pass-title mt-5 font-heading text-4xl tracking-[0.14em] text-white sm:text-5xl">
+        Checking payment
+      </h1>
     </div>
   );
 }

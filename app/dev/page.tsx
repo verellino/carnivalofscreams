@@ -1,3 +1,4 @@
+import About from "@/components/About";
 import Hero from "@/components/Hero";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
@@ -10,6 +11,7 @@ export default function DevHome() {
       <main className="flex flex-1 flex-col">
         <Hero />
         <Tickets />
+        <About />
       </main>
       <SiteFooter />
     </div>

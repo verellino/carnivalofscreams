@@ -1,3 +1,4 @@
+import ArrivalGround from "@/components/ArrivalGround";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -9,7 +10,10 @@ export default function ReserveLayout({
   return (
     <div className="flex flex-1 flex-col bg-ink">
       <SiteHeader />
-      <main className="relative flex flex-1 flex-col">{children}</main>
+      <main className="relative isolate flex flex-1 flex-col bg-ink">
+        <ArrivalGround />
+        <div className="relative z-10 flex flex-1 flex-col">{children}</div>
+      </main>
       <SiteFooter />
     </div>
   );
