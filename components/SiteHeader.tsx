@@ -6,9 +6,10 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Gallery", href: "/gallery" },
   { label: "Ticket", href: "/#tickets" },
-  { label: "Reservation", href: "/reserve" },
+  { label: "About", href: "/about" },
+  // { label: "Gallery", href: "/gallery" },
+  // { label: "Reservation", href: "/reserve" },
 ] as const;
 
 function isActive(pathname: string, href: string) {

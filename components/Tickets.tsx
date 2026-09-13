@@ -26,22 +26,27 @@ export default function Tickets() {
           Day Passes cover both.
         </p>
 
-        <div className="mt-16 grid gap-4 text-left sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
+        <div className="mt-16 grid gap-4 text-left sm:grid-cols-2 xl:grid-cols-3 xl:gap-5">
           {PASSES.map((pass) => (
             <article
               key={pass.id}
               className={`pass-panel flex flex-col px-6 py-7 sm:px-7 ${
-                pass.soldOut ? "pass-panel-dim" : ""
+                pass.status === "sold-out" ? "pass-panel-dim" : ""
               }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-heading text-[11px] tracking-[0.32em] text-white/50">
                   {pass.kicker}
                 </span>
-                {pass.soldOut ? (
+                {pass.status === "sold-out" ? (
                   <span className="inline-flex items-center gap-2 font-heading text-[10px] tracking-[0.28em] text-white/45">
                     <span className="pass-signal" aria-hidden="true" />
                     Sold Out
+                  </span>
+                ) : pass.status === "upcoming" ? (
+                  <span className="inline-flex items-center gap-2 font-heading text-[10px] tracking-[0.28em] text-white/45">
+                    <span className="pass-signal" aria-hidden="true" />
+                    Coming Soon
                   </span>
                 ) : null}
               </div>
@@ -53,18 +58,17 @@ export default function Tickets() {
               <p className="font-heading text-lg tracking-[0.12em] text-white">
                 {pass.price}
               </p>
-              <p className="mt-3 text-[11px] leading-relaxed tracking-wide text-white/40">
-                {pass.when}
-                <br />
-                Tip Tap Toe Yogyakarta
-              </p>
               <p className="mt-5 flex-1 text-sm leading-relaxed text-white/65">
                 {pass.description}
               </p>
 
-              {pass.soldOut ? (
+              {pass.status === "sold-out" ? (
                 <span className="mt-8 inline-flex items-center justify-center border border-white/12 px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-white/30">
                   Sold Out
+                </span>
+              ) : pass.status === "upcoming" ? (
+                <span className="mt-8 inline-flex items-center justify-center border border-white/12 px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-white/30">
+                  Coming Soon
                 </span>
               ) : (
                 <a
