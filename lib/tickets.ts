@@ -1,52 +1,53 @@
+export type PassStatus = "on-sale" | "sold-out" | "upcoming";
+
 export type Pass = {
   id: string;
   kicker: string;
   name: string;
   price: string;
-  when: string;
   description: string;
-  soldOut: boolean;
+  status: PassStatus;
 };
 
 export const PASSES: Pass[] = [
-  {
-    id: "early-bird-1-day",
-    kicker: "1 Day Pass",
-    name: "Early Bird",
-    price: "Rp99.000",
-    when: "Friday, 30 Oct or Saturday, 31 Oct 2026",
-    description:
-      "Be there before the story unfolds. Choose your night — one ticket, one person, one day.",
-    soldOut: true,
-  },
-  {
-    id: "early-bird-2-day",
-    kicker: "2 Day Pass",
-    name: "Early Bird",
-    price: "Rp160.000",
-    when: "Friday 30 Oct – Saturday 31 Oct 2026",
-    description:
-      "Two nights, one pass. The full experience at Tip Tap Toe Yogyakarta.",
-    soldOut: true,
-  },
   {
     id: "blind-1-day",
     kicker: "1 Day Pass",
     name: "Blind Ticket",
     price: "Rp75.000",
-    when: "Friday, 30 Oct or Saturday, 31 Oct 2026",
-    description:
-      "The first wave. Be there before the story unfolds — pick Friday or Saturday.",
-    soldOut: true,
+    description: "Your first access to The Arrival starts now.",
+    status: "sold-out",
   },
   {
-    id: "blind-2-day",
-    kicker: "2 Day Pass",
-    name: "Blind Ticket",
-    price: "Rp120.000",
-    when: "Friday 30 Oct – Saturday 31 Oct 2026",
-    description:
-      "The first wave, both nights. Two evenings, one pass — the full experience.",
-    soldOut: true,
+    id: "early-bird-1-day",
+    kicker: "1 Day Pass",
+    name: "Early Bird",
+    price: "Rp99.000",
+    description: "Secure yours before they disappear into the unknown.",
+    status: "sold-out",
   },
+  {
+    id: "presale-1",
+    kicker: "1 Day Pass",
+    name: "Presale 1",
+    price: "Rp129.000",
+    description: "Prepare your circle to explore the other side!",
+    status: "on-sale",
+  },
+  // {
+  //   id: "presale-2",
+  //   kicker: "1 Day Pass",
+  //   name: "Presale 2",
+  //   price: "Rp159.000",
+  //   description: "Opens when Presale 1 is gone.",
+  //   status: "upcoming",
+  // },
+  // {
+  //   id: "general-admission",
+  //   kicker: "1 Day Pass",
+  //   name: "General Admission",
+  //   price: "Rp199.000",
+  //   description: "The full price. Last pass to open.",
+  //   status: "upcoming",
+  // },
 ];

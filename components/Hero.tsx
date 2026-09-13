@@ -80,7 +80,7 @@ export default function Hero() {
       >
         GET YOUR TICKETS
       </motion.a>
-      <motion.a
+      {/* <motion.a
         href="/reserve"
         variants={item}
         initial="hidden"
@@ -89,7 +89,7 @@ export default function Hero() {
         className="btn-press relative z-10 inline-flex items-center justify-center whitespace-nowrap rounded-full border border-white/15 bg-white px-10 py-4 font-heading text-sm font-semibold tracking-widest text-black shadow-[0_0_50px_-10px_rgba(255,255,255,0.9)] transition-shadow duration-200 hover:shadow-[0_0_64px_-8px_rgba(255,255,255,1)] sm:px-16 sm:py-5 sm:text-lg"
       >
         RESERVE YOUR SPOT
-      </motion.a>
+      </motion.a> */}
       </div>
     </section>
   );

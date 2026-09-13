@@ -8,7 +8,7 @@ const SOCIALS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="relative z-10 flex flex-col items-center gap-4 border-t border-white/10 bg-ink px-6 py-8 text-center sm:flex-row sm:justify-between sm:text-left">
+    <footer className="relative z-10 flex flex-col items-center gap-4 border-t border-white/10 bg-ink px-6 py-8 text-center">
       <p className="font-heading text-[11px] tracking-[0.15em] text-mist/60">
         © 2026 Carnaval of Screams. All rights reserved.
       </p>
