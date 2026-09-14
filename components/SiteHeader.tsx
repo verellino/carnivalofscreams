@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef } from "react";
 
+import { ACTIVE_PASS } from "@/lib/tickets";
+
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Ticket", href: "/#tickets" },
+  { label: "Ticket", href: `/#${ACTIVE_PASS.id}` },
   { label: "About", href: "/about" },
   // { label: "Gallery", href: "/gallery" },
   // { label: "Reservation", href: "/reserve" },

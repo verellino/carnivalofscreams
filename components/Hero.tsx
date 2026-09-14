@@ -20,6 +20,10 @@ export default function Hero() {
   return (
     <section className="relative flex h-svh w-full flex-col items-center justify-center overflow-hidden bg-ink px-6 text-center">
       <VideoBackground className="absolute inset-0 z-0" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-40 bg-linear-to-t from-ink via-ink/70 to-transparent sm:h-52"
+      />
 
       <motion.p
         variants={item}
@@ -71,7 +75,8 @@ export default function Hero() {
 
     <div className="flex flex-col sm:flex-row gap-4 mt-12">
       <motion.a
-        href="#tickets"
+        href="https://artatix.co.id/event/carnval_of_scream_2026"
+        target="_blank"
         variants={item}
         initial="hidden"
         animate="show"

@@ -28,7 +28,7 @@ export const PASSES: Pass[] = [
   },
   {
     id: "presale-1",
-    kicker: "1 Day Pass",
+    kicker: "GET PRESALE 1",
     name: "Presale 1",
     price: "Rp129.000",
     description: "Prepare your circle to explore the other side!",
@@ -51,3 +51,7 @@ export const PASSES: Pass[] = [
   //   status: "upcoming",
   // },
 ];
+
+/** Currently available pass — used for nav deep-links into the tickets section. */
+export const ACTIVE_PASS =
+  PASSES.find((pass) => pass.status === "on-sale") ?? PASSES[0];

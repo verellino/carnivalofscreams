@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { TICKETS_URL } from "@/lib/site";
 import { PASSES } from "@/lib/tickets";
 
@@ -7,7 +5,7 @@ export default function Tickets() {
   return (
     <section
       id="tickets"
-      className="relative isolate scroll-mt-28 overflow-hidden bg-ink px-6 pb-28 pt-24 sm:pb-36 sm:pt-32"
+      className="relative isolate scroll-mt-28 overflow-hidden bg-ink px-6 pb-28 pt-24 sm:pb-36 sm:pt-0"
     >
 
       <div className="relative mx-auto w-full max-w-6xl text-center">
@@ -29,8 +27,9 @@ export default function Tickets() {
         <div className="mt-16 grid gap-4 text-left sm:grid-cols-2 xl:grid-cols-3 xl:gap-5">
           {PASSES.map((pass) => (
             <article
+              id={pass.id}
               key={pass.id}
-              className={`pass-panel flex flex-col px-6 py-7 sm:px-7 ${
+              className={`pass-panel scroll-mt-28 flex flex-col px-6 py-7 sm:px-7 ${
                 pass.status === "sold-out" ? "pass-panel-dim" : ""
               }`}
             >
