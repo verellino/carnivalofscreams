@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { angie } from "./fonts";
 import "./globals.css";
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${angie.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
+      <GoogleAnalytics gaId="G-F8T6K8MGLZ" />
     </html>
   );
 }
