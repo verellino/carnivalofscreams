@@ -1,3 +1,4 @@
+import GuestStars from "@/components/GuestStars";
 import Hero from "@/components/Hero";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
@@ -9,6 +10,7 @@ export default function Home() {
       <SiteHeader />
       <main className="flex flex-1 flex-col">
         <Hero />
+        <GuestStars />
         <Tickets />
       </main>
       <SiteFooter />

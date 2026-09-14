@@ -193,6 +193,7 @@ h6 {
 
 .pass-title {
   text-shadow: 0 0 48px rgba(255, 255, 255, 0.22);
+  font-weight: 700;
 }
 
 .pass-panel {
@@ -305,7 +306,7 @@ h6 {
 .past-gallery__editions,
 .past-gallery__hint {
   font-family: var(--font-heading);
-  letter-spacing: 0.28em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
