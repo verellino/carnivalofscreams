@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import { insertAuditLogSafe, requestMeta } from "@/lib/audit";
 import {
+  CHECKOUT_PAYMENT_DUE_MINUTES,
   createCheckoutPayment,
   isDokuConfigured,
   newOrderId,
@@ -11,8 +12,13 @@ import {
 import { sendReservationInvoice } from "@/lib/invoice";
 import {
   claimReservationSeat,
+  expireReservationHoldSafe,
   getReservationSafe,
-  insertReservationSafe,
+  insertReservation,
+  isUniqueViolation,
+  listTakenSeatIdsSafe,
+  releaseExpiredHoldsSafe,
+  updateReservationCheckout,
 } from "@/lib/reservations";
 import { getSeat } from "@/lib/seats";
 import { getSiteUrl } from "@/lib/site";
@@ -55,6 +61,20 @@ function asPackageId(value: unknown): TablePackageId | undefined {
     return value;
   }
   return undefined;
+}
+
+function checkoutExpiry(expiredDate?: string) {
+  if (!expiredDate) return undefined;
+  const parsed = new Date(expiredDate);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+export async function listTakenSeatIdsAction(
+  nightId: unknown,
+): Promise<string[]> {
+  const id = asNightId(nightId);
+  if (!id) return [];
+  return listTakenSeatIdsSafe(id);
 }
 
 export async function createReservation(
@@ -100,6 +120,7 @@ export async function createReservation(
   const phone = String(input.phone ?? "").replace(/[\s()-]/g, "");
   const nightId = asNightId(input.nightId);
   const packageId = asPackageId(input.packageId);
+  const seatId = String(input.seatId ?? "").trim();
 
   if (name.length < 2 || name.length > 80) {
     return respond({ ok: false, error: "Please enter your full name." });
@@ -125,6 +146,11 @@ export async function createReservation(
     return respond({ ok: false, error: "Please choose a sofa category." });
   }
 
+  const seat = getSeat(seatId);
+  if (!seat || seat.packageId !== packageId) {
+    return respond({ ok: false, error: "Please pick a sofa in that category." });
+  }
+
   const orderId = newOrderId(packageId, nightId);
   const origin = await requestOrigin();
   const reservation = {
@@ -134,7 +160,33 @@ export async function createReservation(
     phone,
     nightId,
     packageId,
+    seatId,
   };
+  const expiresAt = new Date(
+    Date.now() + CHECKOUT_PAYMENT_DUE_MINUTES * 60 * 1000,
+  );
+
+  await releaseExpiredHoldsSafe();
+
+  try {
+    await insertReservation({
+      orderId,
+      ...reservation,
+      partySize: table.seats,
+      amountIdr: table.priceIdr,
+      expiresAt,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return respond(
+        { ok: false, error: "That sofa was just taken. Pick another." },
+        orderId,
+      );
+    }
+    const message =
+      error instanceof Error ? error.message : "Could not hold that sofa.";
+    return respond({ ok: false, error: message }, orderId);
+  }
 
   try {
     const checkout = await createCheckoutPayment(orderId, reservation, {
@@ -142,20 +194,22 @@ export async function createReservation(
       notificationUrl: `${origin}/api/doku/notification`,
     });
 
-    await insertReservationSafe({
-      orderId,
-      ...reservation,
-      partySize: table.seats,
-      amountIdr: table.priceIdr,
-      paymentUrl: checkout.paymentUrl,
-      paymentToken: checkout.tokenId,
-    });
+    try {
+      await updateReservationCheckout(orderId, {
+        paymentUrl: checkout.paymentUrl,
+        paymentToken: checkout.tokenId,
+        expiresAt: checkoutExpiry(checkout.expiredDate) ?? expiresAt,
+      });
+    } catch (error) {
+      console.error("[reservations] failed to store checkout", error);
+    }
 
     return respond(
       { ok: true, paymentUrl: checkout.paymentUrl, orderId },
       orderId,
     );
   } catch (error) {
+    await expireReservationHoldSafe(orderId);
     const message =
       error instanceof Error ? error.message : "Could not start payment.";
     return respond({ ok: false, error: message }, orderId);

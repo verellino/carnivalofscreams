@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
+import { getSeat } from "./seats";
 import {
   formatIdr,
   getNight,
@@ -15,6 +16,7 @@ export type ReservationPayload = {
   phone: string;
   nightId: NightId;
   packageId: TablePackageId;
+  seatId: string;
 };
 
 export type DokuCheckout = {
@@ -56,7 +58,6 @@ export const CHECKOUT_PAYMENT_METHOD_TYPES = [
 ] as const;
 
 export const CHECKOUT_PAYMENT_DUE_MINUTES = 60;
-export const CHECKOUT_RECOVERY_MINUTES = 10_080;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -242,6 +243,10 @@ export function isPendingStatus(status?: string, orderStatus?: string) {
   return false;
 }
 
+export function isExpiredStatus(status?: string, orderStatus?: string) {
+  return status === "EXPIRED" || orderStatus === "ORDER_EXPIRED";
+}
+
 export function isFailedStatus(status?: string, orderStatus?: string) {
   return (
     status === "FAILED" ||
@@ -297,6 +302,10 @@ export async function createCheckoutPayment(
   }
 
   const { firstName, lastName } = splitName(reservation.name);
+  const seat = getSeat(reservation.seatId);
+  const itemName = seat
+    ? `${table.name} ${night.short} · ${seat.label}`
+    : `${table.name} ${night.short}`;
   const requestTarget = "/checkout/v1/payment";
   const body = JSON.stringify({
     order: {
@@ -307,12 +316,11 @@ export async function createCheckoutPayment(
       callback_url_result: urls.callbackUrl,
       language: "EN",
       auto_redirect: true,
-      recover_abandoned_cart: true,
-      expired_recovered_cart: CHECKOUT_RECOVERY_MINUTES,
+      recover_abandoned_cart: false,
       line_items: [
         {
           id: table.id,
-          name: `${table.name} ${night.short}`,
+          name: itemName,
           quantity: 1,
           price: table.priceIdr,
         },

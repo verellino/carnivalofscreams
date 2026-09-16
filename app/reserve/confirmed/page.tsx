@@ -9,6 +9,7 @@ import {
 } from "@/lib/audit";
 import {
   getOrderStatus,
+  isExpiredStatus,
   isFailedStatus,
   isPaidStatus,
   isPendingStatus,
@@ -16,9 +17,11 @@ import {
 } from "@/lib/doku";
 import { sendReservationInvoice } from "@/lib/invoice";
 import {
+  expireReservationHoldSafe,
   getReservationSafe,
   listTakenSeatIdsSafe,
   markReservationPaidSafe,
+  releaseExpiredHoldsSafe,
 } from "@/lib/reservations";
 import { getSeat } from "@/lib/seats";
 
@@ -95,6 +98,10 @@ export default async function ReservationConfirmedPage({
   }
 
   let reservation = await getReservationSafe(orderId);
+  await releaseExpiredHoldsSafe();
+  if (reservation) {
+    reservation = (await getReservationSafe(orderId)) ?? reservation;
+  }
   let status;
   try {
     status = await getOrderStatus(orderId);
@@ -227,12 +234,32 @@ export default async function ReservationConfirmedPage({
     );
   }
 
+  const expired =
+    reservation?.status === "expired" ||
+    isExpiredStatus(transactionStatus, status?.orderStatus);
+
+  if (expired) {
+    if (reservation?.status === "pending") {
+      await expireReservationHoldSafe(orderId, transactionStatus ?? "EXPIRED");
+    }
+    return (
+      <StatusShell
+        kicker="Hold released"
+        title="This sofa is free again."
+        body="The payment window closed, so the hold expired with it. Start a new table hold if you still want a sofa."
+        action={{ href: "/reserve", label: "Reserve a table" }}
+      >
+        {details}
+      </StatusShell>
+    );
+  }
+
   if (pending || (reservation && !failed)) {
     return (
       <StatusShell
         kicker="Awaiting payment"
-        title="Finish paying to keep the hold."
-        body="Complete the transfer in DOKU. After it clears, you pick your sofa."
+        title="Finish paying to keep this sofa."
+        body="Complete the transfer in DOKU. This sofa stays held until the 60-minute payment window closes."
         action={{ href: "/reserve", label: "Start again" }}
       >
         {details}

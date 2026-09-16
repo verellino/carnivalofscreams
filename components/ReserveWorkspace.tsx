@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import ReserveForm from "@/components/ReserveForm";
+import { listTakenSeatIdsAction } from "@/app/actions/reserve";
+import ReserveForm, {
+  type ReservePreview,
+} from "@/components/ReserveForm";
 import SeatMap from "@/components/SeatMap";
-import type { TablePackageId } from "@/lib/tables";
 
 type Props = {
   enabled: boolean;
@@ -12,7 +14,28 @@ type Props = {
 };
 
 export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
-  const [packageId, setPackageId] = useState<TablePackageId>("premiere");
+  const [preview, setPreview] = useState<ReservePreview>({
+    step: "identity",
+    packageId: "premiere",
+    nightId: "oct-30",
+    seatId: null,
+  });
+  const [mapSeatId, setMapSeatId] = useState<string | null>(null);
+  const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
+
+  const onPreviewChange = useCallback((next: ReservePreview) => {
+    setPreview(next);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listTakenSeatIdsAction(preview.nightId).then((ids) => {
+      if (!cancelled) setTakenSeatIds(ids);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [preview.nightId, preview.step]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-28 pt-24 sm:pt-32 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-start lg:gap-16 lg:pb-36">
@@ -27,12 +50,18 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
           Hold a sofa for the night
         </p>
         <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
-          Enter your details, pick a night and a sofa category, then pay through
-          DOKU. After payment you choose the sofa. We send the invoice by email
-          and WhatsApp.
+          Enter your details, pick a night, a sofa category, and the sofa
+          itself, then pay through DOKU. Paying locks that sofa for 60 minutes.
+          We send the invoice by email and WhatsApp.
         </p>
         <div className="mt-12">
-          <SeatMap mode="preview" packageId={packageId} />
+          <SeatMap
+            mode={preview.step === "sofa" ? "pick" : "preview"}
+            packageId={preview.packageId}
+            selectedSeatId={preview.seatId}
+            takenSeatIds={takenSeatIds}
+            onSelect={(seat) => setMapSeatId(seat.id)}
+          />
         </div>
       </div>
 
@@ -40,7 +69,9 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
         <ReserveForm
           enabled={enabled}
           checkoutJsUrl={checkoutJsUrl}
-          onPackageIdChange={setPackageId}
+          takenSeatIds={takenSeatIds}
+          mapSeatId={mapSeatId}
+          onPreviewChange={onPreviewChange}
         />
       </div>
     </div>

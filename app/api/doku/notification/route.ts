@@ -6,8 +6,17 @@ import {
   headerRecord,
   insertDokuCallback,
 } from "@/lib/audit";
-import { isPaidStatus, verifyNotificationSignature } from "@/lib/doku";
-import { markReservationPaidSafe } from "@/lib/reservations";
+import {
+  isExpiredStatus,
+  isPaidStatus,
+  readDokuStatus,
+  verifyNotificationSignature,
+} from "@/lib/doku";
+import { sendReservationInvoice } from "@/lib/invoice";
+import {
+  expireReservationHoldSafe,
+  markReservationPaidSafe,
+} from "@/lib/reservations";
 
 export const runtime = "nodejs";
 
@@ -75,12 +84,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
   }
 
-  if (isPaidStatus(fields.transactionStatus ?? undefined) && fields.orderId) {
-    await markReservationPaidSafe({
+  const dokuStatus = readDokuStatus(payload);
+
+  if (isPaidStatus(dokuStatus.transactionStatus) && fields.orderId) {
+    const reservation = await markReservationPaidSafe({
       orderId: fields.orderId,
-      transactionStatus: fields.transactionStatus ?? "SUCCESS",
-      channelId: fields.paymentType,
+      transactionStatus: dokuStatus.transactionStatus ?? "SUCCESS",
+      channelId: dokuStatus.channelId ?? fields.paymentType,
     });
+    await sendReservationInvoice(reservation, "/api/doku/notification");
+  } else if (
+    isExpiredStatus(dokuStatus.transactionStatus, dokuStatus.orderStatus) &&
+    fields.orderId
+  ) {
+    await expireReservationHoldSafe(
+      fields.orderId,
+      dokuStatus.transactionStatus ?? dokuStatus.orderStatus ?? "EXPIRED",
+    );
   }
 
   return NextResponse.json({ ok: true });

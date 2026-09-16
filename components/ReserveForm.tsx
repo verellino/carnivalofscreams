@@ -1,11 +1,12 @@
 "use client";
 
 import Script from "next/script";
-import { useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
 import { getLineup } from "@/lib/lineup";
+import { getSeat, seatsForPackage } from "@/lib/seats";
 import {
   formatIdr,
   NIGHTS,
@@ -14,15 +15,24 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-type Step = "identity" | "night" | "category" | "pay";
+export type ReserveStep = "identity" | "night" | "category" | "sofa" | "pay";
+
+export type ReservePreview = {
+  step: ReserveStep;
+  packageId: TablePackageId;
+  nightId: NightId;
+  seatId: string | null;
+};
 
 type Props = {
   enabled: boolean;
   checkoutJsUrl: string;
-  onPackageIdChange?: (packageId: TablePackageId) => void;
+  takenSeatIds: string[];
+  mapSeatId?: string | null;
+  onPreviewChange?: (preview: ReservePreview) => void;
 };
 
-const STEPS: Step[] = ["identity", "night", "category", "pay"];
+const STEPS: ReserveStep[] = ["identity", "night", "category", "sofa", "pay"];
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -51,9 +61,11 @@ const PHONE_RE = /^\+?[0-9]{9,16}$/;
 export default function ReserveForm({
   enabled,
   checkoutJsUrl,
-  onPackageIdChange,
+  takenSeatIds,
+  mapSeatId,
+  onPreviewChange,
 }: Props) {
-  const [step, setStep] = useState<Step>("identity");
+  const [step, setStep] = useState<ReserveStep>("identity");
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [nik, setNik] = useState("");
@@ -61,13 +73,31 @@ export default function ReserveForm({
   const [phone, setPhone] = useState("");
   const [nightId, setNightId] = useState<NightId>("oct-30");
   const [packageId, setPackageId] = useState<TablePackageId>("premiere");
+  const [seatId, setSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
 
   const table = TABLE_PACKAGES.find((pack) => pack.id === packageId)!;
+  const sofa = seatId ? getSeat(seatId) : undefined;
   const busy = pending || paying;
   const stepIndex = STEPS.indexOf(step);
+  const categorySeats = seatsForPackage(packageId);
+  const availableSeats = categorySeats.filter(
+    (seat) => !takenSeatIds.includes(seat.id),
+  );
+
+  useEffect(() => {
+    onPreviewChange?.({ step, packageId, nightId, seatId });
+  }, [step, packageId, nightId, seatId, onPreviewChange]);
+
+  useEffect(() => {
+    if (!mapSeatId) return;
+    const seat = getSeat(mapSeatId);
+    if (seat && seat.packageId === packageId && !takenSeatIds.includes(seat.id)) {
+      setSeatId(seat.id);
+    }
+  }, [mapSeatId, packageId, takenSeatIds]);
 
   function logCheckoutCallback(event: string, payload: unknown) {
     void fetch("/api/doku/checkout-callback", {
@@ -116,6 +146,18 @@ export default function ReserveForm({
       return;
     }
     if (step === "category") {
+      setStep("sofa");
+      return;
+    }
+    if (step === "sofa") {
+      if (!seatId || !availableSeats.some((seat) => seat.id === seatId)) {
+        setError(
+          availableSeats.length === 0
+            ? "Every sofa in this category is held. Try another category or night."
+            : "Please pick a sofa.",
+        );
+        return;
+      }
       setStep("pay");
     }
   }
@@ -124,13 +166,19 @@ export default function ReserveForm({
     setError(null);
     if (step === "night") setStep("identity");
     if (step === "category") setStep("night");
-    if (step === "pay") setStep("category");
+    if (step === "sofa") setStep("category");
+    if (step === "pay") setStep("sofa");
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (step !== "pay") {
       goNext();
+      return;
+    }
+
+    if (!seatId) {
+      setError("Please pick a sofa.");
       return;
     }
 
@@ -143,6 +191,7 @@ export default function ReserveForm({
         phone,
         nightId,
         packageId,
+        seatId,
       });
 
       if (!result.ok) {
@@ -181,7 +230,7 @@ export default function ReserveForm({
       ) : null}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-8">
-        <ol className="grid grid-cols-4 gap-1 text-center">
+        <ol className="grid grid-cols-5 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
               key={item}
@@ -199,7 +248,9 @@ export default function ReserveForm({
                   ? "Day"
                   : index === 2
                     ? "Category"
-                    : "Pay"}
+                    : index === 3
+                      ? "Sofa"
+                      : "Pay"}
             </li>
           ))}
         </ol>
@@ -293,7 +344,10 @@ export default function ReserveForm({
                       name="night"
                       value={night.id}
                       checked={selected}
-                      onChange={() => setNightId(night.id)}
+                      onChange={() => {
+                        setNightId(night.id);
+                        setSeatId(null);
+                      }}
                       className="sr-only"
                     />
                     <span className="font-heading text-sm tracking-[0.16em] text-white">
@@ -338,7 +392,12 @@ export default function ReserveForm({
                       checked={selected}
                       onChange={() => {
                         setPackageId(pack.id);
-                        onPackageIdChange?.(pack.id);
+                        setSeatId((current) => {
+                          const currentSeat = current ? getSeat(current) : undefined;
+                          return currentSeat?.packageId === pack.id
+                            ? current
+                            : null;
+                        });
                       }}
                       className="sr-only"
                     />
@@ -357,6 +416,56 @@ export default function ReserveForm({
                 );
               })}
             </div>
+          </fieldset>
+        ) : null}
+
+        {step === "sofa" ? (
+          <fieldset className="min-w-0">
+            <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
+              Choose a sofa
+            </legend>
+            <div className="mt-3 flex flex-col gap-2">
+              {categorySeats.map((seat) => {
+                const taken = takenSeatIds.includes(seat.id);
+                const selected = seatId === seat.id;
+                return (
+                  <label
+                    key={seat.id}
+                    className={`border p-4 transition-colors ${
+                      taken
+                        ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                        : selected
+                          ? "cursor-pointer border-white/80 bg-white/10"
+                          : "cursor-pointer border-white/15 bg-black/30 hover:border-white/35"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="seat"
+                      value={seat.id}
+                      checked={selected}
+                      disabled={taken}
+                      onChange={() => setSeatId(seat.id)}
+                      className="sr-only"
+                    />
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="font-heading text-sm tracking-[0.16em] text-white">
+                        {seat.label}
+                      </span>
+                      {taken ? (
+                        <span className="font-heading text-[10px] tracking-[0.18em] text-white/40">
+                          Held
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-white/40">
+              Paying holds this sofa for 60 minutes. The hold and the payment
+              expire together.
+            </p>
           </fieldset>
         ) : null}
 
@@ -382,6 +491,9 @@ export default function ReserveForm({
             <p>
               <span className="text-white/40">Category</span> {table.name} ·{" "}
               {formatIdr(table.priceIdr)}
+            </p>
+            <p>
+              <span className="text-white/40">Sofa</span> {sofa?.label}
             </p>
           </div>
         ) : null}
@@ -429,8 +541,8 @@ export default function ReserveForm({
           </p>
         ) : step === "pay" ? (
           <p className="text-xs leading-relaxed text-white/40">
-            Pay the sofa category through DOKU. After the transfer clears, pick
-            your sofa. We send the invoice by email and WhatsApp.
+            Pay within 60 minutes to keep this sofa. The hold and the payment
+            expire together. We send the invoice by email and WhatsApp.
           </p>
         ) : null}
       </form>
