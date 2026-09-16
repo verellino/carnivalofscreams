@@ -456,6 +456,10 @@ export default function ReserveForm({
                         <span className="font-heading text-[10px] tracking-[0.18em] text-white/40">
                           Held
                         </span>
+                      ) : selected ? (
+                        <span className="font-heading text-[10px] tracking-[0.18em] text-white/55">
+                          Selected
+                        </span>
                       ) : null}
                     </span>
                   </label>
@@ -539,7 +543,9 @@ export default function ReserveForm({
             DOKU is not configured yet. Add the client ID and secret key before
             taking payments.
           </p>
-        ) : step === "pay" ? (
+        ) : null}
+
+        {step === "pay" ? (
           <p className="text-xs leading-relaxed text-white/40">
             Pay within 60 minutes to keep this sofa. The hold and the payment
             expire together. We send the invoice by email and WhatsApp.

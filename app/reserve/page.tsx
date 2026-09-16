@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     "Hold a sofa at Carnaval of Screams. Pick the sofa, pay through DOKU within 60 minutes, then receive the invoice by email and WhatsApp.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function ReservePage() {
   return (
     <ReserveWorkspace
