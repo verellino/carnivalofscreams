@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import postgres from "postgres";
 
 import { getSql } from "./db";
+import { readDokuStatus } from "./doku";
 
 export type AuditEvent = {
   event: string;
@@ -14,8 +15,8 @@ export type AuditEvent = {
   payload?: unknown;
 };
 
-export type MidtransCallbackEvent = {
-  source: "http_notification" | "snap_js" | "window_redirect";
+export type DokuCallbackEvent = {
+  source: "http_notification" | "checkout_js" | "window_redirect";
   event?: string | null;
   orderId?: string | null;
   transactionId?: string | null;
@@ -82,10 +83,10 @@ export async function insertAuditLogSafe(entry: AuditEvent) {
   }
 }
 
-export async function insertMidtransCallback(entry: MidtransCallbackEvent) {
+export async function insertDokuCallback(entry: DokuCallbackEvent) {
   const sql = getSql();
   await sql`
-    insert into public.midtrans_callbacks (
+    insert into public.doku_callbacks (
       source,
       event,
       order_id,
@@ -115,15 +116,22 @@ export async function insertMidtransCallback(entry: MidtransCallbackEvent) {
   `;
 }
 
-export async function insertMidtransCallbackSafe(entry: MidtransCallbackEvent) {
+export async function insertDokuCallbackSafe(entry: DokuCallbackEvent) {
   try {
-    await insertMidtransCallback(entry);
+    await insertDokuCallback(entry);
   } catch (error) {
-    console.error("[audit] failed to insert midtrans callback", error);
+    console.error("[audit] failed to insert doku callback", error);
   }
 }
 
+function stringOrNull(value: unknown) {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
 export function callbackFields(payload: unknown) {
+  const status = readDokuStatus(payload);
   if (!payload || typeof payload !== "object") {
     return {
       orderId: null as string | null,
@@ -136,16 +144,15 @@ export function callbackFields(payload: unknown) {
 
   const record = payload as Record<string, unknown>;
   return {
-    orderId: stringOrNull(record.order_id),
-    transactionId: stringOrNull(record.transaction_id),
-    transactionStatus: stringOrNull(record.transaction_status),
+    orderId:
+      status.invoiceNumber ??
+      stringOrNull(record.order_id) ??
+      stringOrNull(record.invoice_number),
+    transactionId:
+      status.originalRequestId ?? stringOrNull(record.transaction_id),
+    transactionStatus:
+      status.transactionStatus ?? stringOrNull(record.transaction_status),
     statusCode: stringOrNull(record.status_code),
-    paymentType: stringOrNull(record.payment_type),
+    paymentType: status.channelId ?? stringOrNull(record.payment_type),
   };
-}
-
-function stringOrNull(value: unknown) {
-  if (typeof value === "string" && value.length > 0) return value;
-  if (typeof value === "number") return String(value);
-  return null;
 }

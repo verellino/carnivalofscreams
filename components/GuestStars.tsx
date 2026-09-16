@@ -1,23 +1,6 @@
 import Image from "next/image";
 
-const GUESTS = [
-  {
-    id: "basboi",
-    name: "Basboi",
-    day: "Day 1",
-    date: "30th October 2026",
-    image: "/images/guest-basboi.webp",
-    alt: "Basboi arriving on Day 1 of Carnaval of Screams: The Arrival",
-  },
-  {
-    id: "pemandu-karaoke-sedih",
-    name: "Pemandu Karaoke Sedih",
-    day: "Day 2",
-    date: "31st October 2026",
-    image: "/images/guest-pemandu-karaoke-sedih.webp",
-    alt: "Pemandu Karaoke Sedih arriving on Day 2 of Carnaval of Screams: The Arrival",
-  },
-] as const;
+import { LINEUP } from "@/lib/lineup";
 
 export default function GuestStars() {
   return (
@@ -37,7 +20,7 @@ export default function GuestStars() {
         </p>
 
         <ul className="mt-16 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-6 lg:gap-8">
-          {GUESTS.map((guest) => (
+          {LINEUP.map((guest) => (
             <li key={guest.id} className="group text-left">
               <figure className="overflow-hidden border border-white/12 bg-ink-soft transition-[border-color,transform] duration-300 group-hover:-translate-y-1 group-hover:border-white/35">
                 <Image

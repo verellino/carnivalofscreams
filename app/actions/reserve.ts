@@ -3,21 +3,44 @@
 import { headers } from "next/headers";
 
 import { insertAuditLogSafe, requestMeta } from "@/lib/audit";
-import { createSnapTransaction, newOrderId } from "@/lib/midtrans";
+import {
+  CHECKOUT_PAYMENT_DUE_MINUTES,
+  createCheckoutPayment,
+  isDokuConfigured,
+  newOrderId,
+} from "@/lib/doku";
+import { sendReservationInvoice } from "@/lib/invoice";
+import {
+  claimReservationSeat,
+  expireReservationHoldSafe,
+  getReservationSafe,
+  insertReservation,
+  isUniqueViolation,
+  listTakenSeatIdsSafe,
+  releaseExpiredHoldsSafe,
+  updateReservationCheckout,
+} from "@/lib/reservations";
+import { getSeat } from "@/lib/seats";
 import { getSiteUrl } from "@/lib/site";
 import {
+  asPackageId,
   getNight,
   getTablePackage,
   type NightId,
-  type TablePackageId,
 } from "@/lib/tables";
 
 export type CreateReservationResult =
-  | { ok: true; token: string; orderId: string }
+  | { ok: true; paymentUrl: string; orderId: string }
+  | { ok: false; error: string };
+
+export type SelectSeatResult =
+  | { ok: true }
   | { ok: false; error: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[0-9]{9,16}$/;
+const NIK_RE = /^\d{16}$/;
+const ORDER_ID_RE = /^COS-[A-Za-z0-9._~-]{1,46}$/;
 
 async function requestOrigin() {
   const headerList = await headers();
@@ -33,11 +56,19 @@ function asNightId(value: unknown): NightId | undefined {
   return undefined;
 }
 
-function asPackageId(value: unknown): TablePackageId | undefined {
-  if (value === "standard" || value === "premiere" || value === "vip") {
-    return value;
-  }
-  return undefined;
+
+function checkoutExpiry(expiredDate?: string) {
+  if (!expiredDate) return undefined;
+  const parsed = new Date(expiredDate);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+export async function listTakenSeatIdsAction(
+  nightId: unknown,
+): Promise<string[]> {
+  const id = asNightId(nightId);
+  if (!id) return [];
+  return listTakenSeatIdsSafe(id);
 }
 
 export async function createReservation(
@@ -72,21 +103,24 @@ export async function createReservation(
     return result;
   };
 
-  if (!process.env.MIDTRANS_SERVER_KEY) {
+  if (!isDokuConfigured()) {
     return respond({ ok: false, error: "Payment is not configured yet." });
   }
 
   const input = raw as Record<string, unknown>;
   const name = String(input.name ?? "").trim();
+  const nik = String(input.nik ?? "").replace(/\D/g, "");
   const email = String(input.email ?? "").trim().toLowerCase();
   const phone = String(input.phone ?? "").replace(/[\s()-]/g, "");
   const nightId = asNightId(input.nightId);
   const packageId = asPackageId(input.packageId);
-  const partySize = Number(input.partySize);
-  const notes = String(input.notes ?? "").trim();
+  const seatId = String(input.seatId ?? "").trim();
 
   if (name.length < 2 || name.length > 80) {
     return respond({ ok: false, error: "Please enter your full name." });
+  }
+  if (!NIK_RE.test(nik)) {
+    return respond({ ok: false, error: "Please enter a 16-digit NIK." });
   }
   if (!EMAIL_RE.test(email)) {
     return respond({ ok: false, error: "Please enter a valid email." });
@@ -98,47 +132,136 @@ export async function createReservation(
     return respond({ ok: false, error: "Please choose a night." });
   }
   if (!packageId) {
-    return respond({ ok: false, error: "Please choose a table." });
+    return respond({ ok: false, error: "Please choose a table category." });
   }
 
   const table = getTablePackage(packageId);
   if (!table) {
-    return respond({ ok: false, error: "Please choose a table." });
+    return respond({ ok: false, error: "Please choose a table category." });
   }
-  if (
-    !Number.isInteger(partySize) ||
-    partySize < 1 ||
-    partySize > table.seats
-  ) {
-    return respond({
-      ok: false,
-      error: `Party size must be between 1 and ${table.seats}.`,
-    });
-  }
-  if (notes.length > 400) {
-    return respond({ ok: false, error: "Notes are too long." });
+
+  const seat = getSeat(seatId);
+  if (!seat || seat.packageId !== packageId) {
+    return respond({ ok: false, error: "Please pick a seat in that category." });
   }
 
   const orderId = newOrderId(packageId, nightId);
+  const origin = await requestOrigin();
+  const reservation = {
+    name,
+    nik,
+    email,
+    phone,
+    nightId,
+    packageId,
+    seatId,
+  };
+  const expiresAt = new Date(
+    Date.now() + CHECKOUT_PAYMENT_DUE_MINUTES * 60 * 1000,
+  );
+
+  await releaseExpiredHoldsSafe();
 
   try {
-    const snap = await createSnapTransaction(
+    await insertReservation({
       orderId,
-      {
-        name,
-        email,
-        phone,
-        nightId,
-        packageId,
-        partySize,
-        notes: notes || undefined,
-      },
-      `${await requestOrigin()}/reserve/confirmed`,
-    );
-    return respond({ ok: true, token: snap.token, orderId }, orderId);
+      ...reservation,
+      partySize: table.seats,
+      amountIdr: table.priceIdr,
+      expiresAt,
+    });
   } catch (error) {
+    if (isUniqueViolation(error)) {
+      return respond(
+        { ok: false, error: "That seat was just taken. Pick another." },
+        orderId,
+      );
+    }
+    const message =
+      error instanceof Error ? error.message : "Could not hold that seat.";
+    return respond({ ok: false, error: message }, orderId);
+  }
+
+  try {
+    const checkout = await createCheckoutPayment(orderId, reservation, {
+      callbackUrl: `${origin}/reserve/confirmed?order_id=${encodeURIComponent(orderId)}`,
+      notificationUrl: `${origin}/api/doku/notification`,
+    });
+
+    try {
+      await updateReservationCheckout(orderId, {
+        paymentUrl: checkout.paymentUrl,
+        paymentToken: checkout.tokenId,
+        expiresAt: checkoutExpiry(checkout.expiredDate) ?? expiresAt,
+      });
+    } catch (error) {
+      console.error("[reservations] failed to store checkout", error);
+    }
+
+    return respond(
+      { ok: true, paymentUrl: checkout.paymentUrl, orderId },
+      orderId,
+    );
+  } catch (error) {
+    await expireReservationHoldSafe(orderId);
     const message =
       error instanceof Error ? error.message : "Could not start payment.";
     return respond({ ok: false, error: message }, orderId);
+  }
+}
+
+export async function selectReservationSeat(
+  raw: unknown,
+): Promise<SelectSeatResult> {
+  const meta = await requestMeta();
+  const input = raw as Record<string, unknown>;
+  const orderId = String(input.orderId ?? "").trim();
+  const seatId = String(input.seatId ?? "").trim();
+
+  await insertAuditLogSafe({
+    event: "reservation.seat.request",
+    orderId,
+    method: "POST",
+    path: "/reserve/confirmed",
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+    payload: { seatId },
+  });
+
+  if (!ORDER_ID_RE.test(orderId) || !getSeat(seatId)) {
+    return { ok: false, error: "Please pick a seat." };
+  }
+
+  try {
+    const claimed = await claimReservationSeat(orderId, seatId);
+    if (!claimed) {
+      return { ok: false, error: "That seat was just taken. Pick another." };
+    }
+    await sendReservationInvoice(claimed, "/reserve/confirmed");
+    await insertAuditLogSafe({
+      event: "reservation.seat.response",
+      orderId,
+      method: "POST",
+      path: "/reserve/confirmed",
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      payload: { ok: true, seatId },
+    });
+    return { ok: true };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not hold that seat.";
+    const latest = await getReservationSafe(orderId);
+    await insertAuditLogSafe({
+      event: "reservation.seat.error",
+      orderId,
+      method: "POST",
+      path: "/reserve/confirmed",
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      payload: { error: message, seatId },
+    });
+    if (latest?.seatId === seatId) return { ok: true };
+    return { ok: false, error: message };
   }
 }
