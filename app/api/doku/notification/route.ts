@@ -4,32 +4,23 @@ import {
   callbackFields,
   clientIpFromHeaders,
   headerRecord,
-  insertMidtransCallback,
+  insertDokuCallback,
 } from "@/lib/audit";
+import { isPaidStatus, verifyNotificationSignature } from "@/lib/doku";
 import {
-  getTransactionStatus,
-  verifyNotificationSignature,
-} from "@/lib/midtrans";
+  getReservationSafe,
+  markReservationPaidSafe,
+} from "@/lib/reservations";
+import { sendPaidReservationWhatsApp } from "@/lib/whatsapp";
 
 export const runtime = "nodejs";
-
-type NotificationBody = {
-  order_id?: string;
-  status_code?: string;
-  gross_amount?: string;
-  signature_key?: string;
-};
-
-function asNotification(payload: unknown): NotificationBody | null {
-  if (!payload || typeof payload !== "object") return null;
-  return payload as NotificationBody;
-}
 
 export async function POST(request: Request) {
   const rawText = await request.text();
   const ip = clientIpFromHeaders(request.headers);
   const userAgent = request.headers.get("user-agent");
   const storedHeaders = headerRecord(request.headers);
+  const requestTarget = new URL(request.url).pathname;
 
   let payload: unknown = { raw: rawText };
   try {
@@ -39,21 +30,21 @@ export async function POST(request: Request) {
   }
 
   const fields = callbackFields(payload);
-  const notification = asNotification(payload);
+  const clientId = request.headers.get("client-id") ?? "";
+  const requestId = request.headers.get("request-id") ?? "";
+  const timestamp = request.headers.get("request-timestamp") ?? "";
+  const signature = request.headers.get("signature") ?? "";
   let signatureValid: boolean | null = null;
 
-  if (
-    notification?.order_id &&
-    notification.status_code &&
-    notification.gross_amount &&
-    notification.signature_key
-  ) {
+  if (clientId && requestId && timestamp && signature) {
     try {
       signatureValid = verifyNotificationSignature({
-        order_id: notification.order_id,
-        status_code: notification.status_code,
-        gross_amount: notification.gross_amount,
-        signature_key: notification.signature_key,
+        clientId,
+        requestId,
+        timestamp,
+        requestTarget,
+        rawBody: rawText,
+        signature,
       });
     } catch {
       signatureValid = false;
@@ -61,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await insertMidtransCallback({
+    await insertDokuCallback({
       source: "http_notification",
       event: "notification",
       orderId: fields.orderId,
@@ -76,11 +67,11 @@ export async function POST(request: Request) {
       payload,
     });
   } catch (error) {
-    console.error("[midtrans] failed to persist notification", error);
+    console.error("[doku] failed to persist notification", error);
     return NextResponse.json({ error: "Persist failed" }, { status: 500 });
   }
 
-  if (!notification?.order_id || !notification.status_code || !notification.gross_amount || !notification.signature_key) {
+  if (!clientId || !requestId || !timestamp || !signature) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -88,7 +79,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
   }
 
-  await getTransactionStatus(notification.order_id);
+  if (isPaidStatus(fields.transactionStatus ?? undefined) && fields.orderId) {
+    const paid = await markReservationPaidSafe({
+      orderId: fields.orderId,
+      transactionStatus: fields.transactionStatus ?? "SUCCESS",
+      channelId: fields.paymentType,
+    });
+    const reservation = paid ?? (await getReservationSafe(fields.orderId));
+    await sendPaidReservationWhatsApp(reservation, "/api/doku/notification");
+  }
 
   return NextResponse.json({ ok: true });
 }

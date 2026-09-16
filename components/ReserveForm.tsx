@@ -1,9 +1,9 @@
 "use client";
 
 import Script from "next/script";
-import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 
+import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
 import {
   formatIdr,
@@ -13,36 +13,32 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-type SnapPayResult = {
-  order_id?: string;
-  [key: string]: unknown;
-};
-
 type Props = {
-  clientKey: string;
-  snapJsUrl: string;
+  enabled: boolean;
+  checkoutJsUrl: string;
 };
 
-function waitForSnap() {
-  return new Promise<NonNullable<Window["snap"]>>((resolve, reject) => {
-    const started = Date.now();
-    const tick = () => {
-      if (window.snap) {
-        resolve(window.snap);
-        return;
-      }
-      if (Date.now() - started > 8000) {
-        reject(new Error("Payment is still loading. Please try again."));
-        return;
-      }
-      window.setTimeout(tick, 80);
-    };
-    tick();
-  });
+function waitForJokulCheckout() {
+  return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
+    (resolve, reject) => {
+      const started = Date.now();
+      const tick = () => {
+        if (typeof window.loadJokulCheckout === "function") {
+          resolve(window.loadJokulCheckout);
+          return;
+        }
+        if (Date.now() - started > 8000) {
+          reject(new Error("Payment is still loading. Please try again."));
+          return;
+        }
+        window.setTimeout(tick, 80);
+      };
+      tick();
+    },
+  );
 }
 
-export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
-  const router = useRouter();
+export default function ReserveForm({ enabled, checkoutJsUrl }: Props) {
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -59,9 +55,9 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
   const busy = pending || paying;
   const seats = Math.min(partySize, table.seats);
 
-  async function logSnapCallback(event: string, payload: unknown) {
+  async function logCheckoutCallback(event: string, payload: unknown) {
     try {
-      await fetch("/api/midtrans/snap-callback", {
+      await fetch("/api/doku/checkout-callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,16 +70,6 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
     } catch {
       // Persistence is best-effort from the browser; HTTP notification is source of truth.
     }
-  }
-
-  function goToConfirmed(result: SnapPayResult) {
-    const orderId = result.order_id;
-    if (!orderId) {
-      setError("Payment finished, but we could not read your order. Check your email.");
-      setPaying(false);
-      return;
-    }
-    router.push(`/reserve/confirmed?order_id=${encodeURIComponent(orderId)}`);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -109,45 +95,29 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
       orderIdRef.current = result.orderId;
       setPaying(true);
       try {
-        const snap = await waitForSnap();
-        snap.pay(result.token, {
-          onSuccess: (payResult) => {
-            void logSnapCallback("onSuccess", payResult).finally(() =>
-              goToConfirmed(payResult),
-            );
-          },
-          onPending: (payResult) => {
-            void logSnapCallback("onPending", payResult).finally(() =>
-              goToConfirmed(payResult),
-            );
-          },
-          onError: (payResult) => {
-            void logSnapCallback("onError", payResult).finally(() => {
-              setPaying(false);
-              setError("Payment did not go through. Try another method.");
-            });
-          },
-          onClose: () => {
-            void logSnapCallback("onClose", {});
-            setPaying(false);
-          },
+        const loadCheckout = await waitForJokulCheckout();
+        await logCheckoutCallback("overlay_open", {
+          payment_url: result.paymentUrl,
         });
+        loadCheckout(result.paymentUrl);
       } catch (err) {
+        await logCheckoutCallback("overlay_error", {
+          message: err instanceof Error ? err.message : "unknown",
+        });
+        window.location.assign(result.paymentUrl);
+        return;
+      } finally {
         setPaying(false);
-        setError(
-          err instanceof Error ? err.message : "Could not open payment.",
-        );
       }
     });
   }
 
   return (
     <>
-      {clientKey ? (
+      {checkoutJsUrl ? (
         <Script
-          id="midtrans-snap"
-          src={snapJsUrl}
-          data-client-key={clientKey}
+          id="doku-checkout"
+          src={checkoutJsUrl}
           strategy="afterInteractive"
         />
       ) : null}
@@ -323,7 +293,7 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
 
         <button
           type="submit"
-          disabled={busy || !clientKey}
+          disabled={busy || !enabled}
           className="btn-press inline-flex items-center justify-center border border-white/80 bg-white px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black sm:text-xs"
         >
           {busy
@@ -331,16 +301,16 @@ export default function ReserveForm({ clientKey, snapJsUrl }: Props) {
             : `Pay ${formatIdr(table.priceIdr)} to reserve`}
         </button>
 
-        {!clientKey ? (
+        {!enabled ? (
           <p className="inline-flex items-center gap-2 text-sm text-white/55">
             <span className="pass-signal" aria-hidden="true" />
-            Midtrans client key is missing. Add it to the environment before
+            DOKU is not configured yet. Add the client ID and secret key before
             taking payments.
           </p>
         ) : (
           <p className="text-xs leading-relaxed text-white/40">
-            You will pay through Midtrans. After the transfer clears, we confirm
-            your table by email.
+            You will pay through DOKU. After the transfer clears, we confirm
+            your table by WhatsApp.
           </p>
         )}
       </form>

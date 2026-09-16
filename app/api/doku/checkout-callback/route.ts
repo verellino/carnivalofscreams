@@ -4,17 +4,12 @@ import {
   callbackFields,
   clientIpFromHeaders,
   headerRecord,
-  insertMidtransCallback,
+  insertDokuCallback,
 } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
-const SNAP_EVENTS = new Set([
-  "onSuccess",
-  "onPending",
-  "onError",
-  "onClose",
-]);
+const CHECKOUT_EVENTS = new Set(["overlay_open", "overlay_error"]);
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -30,18 +25,18 @@ export async function POST(request: Request) {
 
   const record = body as Record<string, unknown>;
   const event = typeof record.event === "string" ? record.event : "";
-  if (!SNAP_EVENTS.has(event)) {
+  if (!CHECKOUT_EVENTS.has(event)) {
     return NextResponse.json({ error: "Unknown event" }, { status: 400 });
   }
 
-  const snapPayload = record.payload ?? {};
-  const fields = callbackFields(snapPayload);
+  const checkoutPayload = record.payload ?? {};
+  const fields = callbackFields(checkoutPayload);
   const orderId =
     (typeof record.orderId === "string" && record.orderId) || fields.orderId;
 
   try {
-    await insertMidtransCallback({
-      source: "snap_js",
+    await insertDokuCallback({
+      source: "checkout_js",
       event,
       orderId,
       transactionId: fields.transactionId,
@@ -54,7 +49,7 @@ export async function POST(request: Request) {
       payload: body,
     });
   } catch (error) {
-    console.error("[midtrans] failed to persist snap callback", error);
+    console.error("[doku] failed to persist checkout callback", error);
     return NextResponse.json({ error: "Persist failed" }, { status: 500 });
   }
 

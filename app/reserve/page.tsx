@@ -2,15 +2,12 @@ import type { Metadata } from "next";
 
 import FloorPlanPlaceholder from "@/components/FloorPlanPlaceholder";
 import ReserveForm from "@/components/ReserveForm";
-import {
-  getMidtransClientKey,
-  getSnapJsUrl,
-} from "@/lib/midtrans";
+import { getCheckoutJsUrl, isDokuConfigured } from "@/lib/doku";
 
 export const metadata: Metadata = {
   title: "Reserve a table",
   description:
-    "Hold a table at Carnaval of Screams, then pay through Midtrans. We confirm your reservation after payment.",
+    "Hold a table at Carnaval of Screams, then pay through DOKU. We confirm your reservation by WhatsApp after payment.",
 };
 
 export default function ReservePage() {
@@ -27,8 +24,8 @@ export default function ReservePage() {
           Hold a table for the night
         </p>
         <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
-          Pick Friday or Saturday and a table. Pay the hold through Midtrans. We
-          confirm your party by email once the payment lands.
+          Pick Friday or Saturday and a table. Pay the hold through DOKU. We
+          confirm your party by WhatsApp once the payment lands.
         </p>
         <div className="mt-12">
           <FloorPlanPlaceholder />
@@ -37,8 +34,8 @@ export default function ReservePage() {
 
       <div className="pass-panel p-6 sm:p-8">
         <ReserveForm
-          clientKey={getMidtransClientKey()}
-          snapJsUrl={getSnapJsUrl()}
+          enabled={isDokuConfigured()}
+          checkoutJsUrl={getCheckoutJsUrl()}
         />
       </div>
     </div>

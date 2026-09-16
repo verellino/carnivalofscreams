@@ -3,15 +3,21 @@ import Link from "next/link";
 
 import {
   insertAuditLogSafe,
-  insertMidtransCallbackSafe,
+  insertDokuCallbackSafe,
   requestMeta,
 } from "@/lib/audit";
 import {
-  getTransactionStatus,
+  getOrderStatus,
+  isFailedStatus,
   isPaidStatus,
   isPendingStatus,
   summarizeReservation,
-} from "@/lib/midtrans";
+} from "@/lib/doku";
+import {
+  getReservationSafe,
+  markReservationPaidSafe,
+} from "@/lib/reservations";
+import { sendPaidReservationWhatsApp } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
   title: "Reservation status",
@@ -45,15 +51,20 @@ export default async function ReservationConfirmedPage({
 }: Props) {
   const params = await searchParams;
   const query = flattenSearchParams(params);
-  const orderId = (query.order_id ?? query.orderId ?? "").trim();
+  const orderId = (
+    query.order_id ??
+    query.orderId ??
+    query.invoice_number ??
+    ""
+  ).trim();
   const meta = await requestMeta();
 
-  await insertMidtransCallbackSafe({
+  await insertDokuCallbackSafe({
     source: "window_redirect",
     event: "finish",
     orderId: orderId || null,
     statusCode: query.status_code ?? null,
-    transactionStatus: query.transaction_status ?? null,
+    transactionStatus: query.transaction_status ?? query.status ?? null,
     ip: meta.ip,
     userAgent: meta.userAgent,
     payload: query,
@@ -74,43 +85,60 @@ export default async function ReservationConfirmedPage({
       <StatusShell
         kicker="Reservation"
         title="We could not find that order."
-        body="Check the link from Midtrans, or start a new table hold."
+        body="Check the link from DOKU, or start a new table hold."
         action={{ href: "/reserve", label: "Reserve a table" }}
       />
     );
   }
 
+  const reservation = await getReservationSafe(orderId);
   let status;
   try {
-    status = await getTransactionStatus(orderId);
+    status = await getOrderStatus(orderId);
   } catch {
-    return (
-      <StatusShell
-        kicker="Reservation"
-        title="We could not check that payment."
-        body="Try again in a moment. If you already paid, keep your Midtrans receipt."
-        action={{ href: "/reserve", label: "Reserve a table" }}
-      />
-    );
+    if (!reservation) {
+      return (
+        <StatusShell
+          kicker="Reservation"
+          title="We could not check that payment."
+          body="Try again in a moment. If you already paid, keep your DOKU receipt."
+          action={{ href: "/reserve", label: "Reserve a table" }}
+        />
+      );
+    }
   }
 
-  if (status.status_code === "404" || !status.transaction_status) {
-    return (
-      <StatusShell
-        kicker="Reservation"
-        title="We could not find that order."
-        body="If you just paid, wait a few seconds and refresh. Otherwise start a new table hold."
-        action={{ href: "/reserve", label: "Reserve a table" }}
-      />
-    );
+  const transactionStatus =
+    status?.transactionStatus ?? reservation?.transactionStatus ?? undefined;
+  const paid =
+    reservation?.status === "paid" || isPaidStatus(transactionStatus);
+  const failed = isFailedStatus(transactionStatus, status?.orderStatus);
+  const pending = isPendingStatus(transactionStatus, status?.orderStatus);
+
+  if (paid && reservation?.status !== "paid") {
+    await markReservationPaidSafe({
+      orderId,
+      transactionStatus: transactionStatus ?? "SUCCESS",
+      channelId: status?.channelId ?? reservation?.channelId,
+    });
   }
 
-  const summary = summarizeReservation(status);
-  const paid = isPaidStatus(
-    status.transaction_status,
-    status.fraud_status,
-  );
-  const pending = isPendingStatus(status.transaction_status);
+  if (paid) {
+    const latest =
+      (await getReservationSafe(orderId)) ??
+      (reservation
+        ? { ...reservation, status: "paid" as const }
+        : null);
+    await sendPaidReservationWhatsApp(latest, "/reserve/confirmed");
+  }
+
+  const summary = summarizeReservation({
+    orderId,
+    amount: status?.amount ?? reservation?.amountIdr,
+    nightId: reservation?.nightId,
+    packageId: reservation?.packageId,
+    partySize: reservation?.partySize,
+  });
 
   const details = (
     <ul className="mt-8 space-y-2 text-sm text-white/65">
@@ -145,7 +173,7 @@ export default async function ReservationConfirmedPage({
       <StatusShell
         kicker="Payment received"
         title="Your table is held."
-        body="We will confirm your reservation by email. Bring the order number to the door."
+        body="We will confirm your reservation by WhatsApp. Bring the order number to the door."
         action={{ href: "/", label: "Back home" }}
       >
         {details}
@@ -153,16 +181,27 @@ export default async function ReservationConfirmedPage({
     );
   }
 
-  if (pending) {
+  if (pending || (reservation && !failed)) {
     return (
       <StatusShell
         kicker="Awaiting payment"
         title="Finish paying to keep the table."
-        body="Complete the transfer in Midtrans. We confirm the table once the payment settles."
+        body="Complete the transfer in DOKU. We confirm the table by WhatsApp once the payment settles."
         action={{ href: "/reserve", label: "Start again" }}
       >
         {details}
       </StatusShell>
+    );
+  }
+
+  if (!status?.transactionStatus && status?.orderStatus !== "ORDER_GENERATED") {
+    return (
+      <StatusShell
+        kicker="Reservation"
+        title="We could not find that order."
+        body="If you just paid, wait a few seconds and refresh. Otherwise start a new table hold."
+        action={{ href: "/reserve", label: "Reserve a table" }}
+      />
     );
   }
 

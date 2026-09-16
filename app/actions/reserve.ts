@@ -3,7 +3,12 @@
 import { headers } from "next/headers";
 
 import { insertAuditLogSafe, requestMeta } from "@/lib/audit";
-import { createSnapTransaction, newOrderId } from "@/lib/midtrans";
+import {
+  createCheckoutPayment,
+  isDokuConfigured,
+  newOrderId,
+} from "@/lib/doku";
+import { insertReservationSafe } from "@/lib/reservations";
 import { getSiteUrl } from "@/lib/site";
 import {
   getNight,
@@ -13,7 +18,7 @@ import {
 } from "@/lib/tables";
 
 export type CreateReservationResult =
-  | { ok: true; token: string; orderId: string }
+  | { ok: true; paymentUrl: string; orderId: string }
   | { ok: false; error: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -72,7 +77,7 @@ export async function createReservation(
     return result;
   };
 
-  if (!process.env.MIDTRANS_SERVER_KEY) {
+  if (!isDokuConfigured()) {
     return respond({ ok: false, error: "Payment is not configured yet." });
   }
 
@@ -120,22 +125,35 @@ export async function createReservation(
   }
 
   const orderId = newOrderId(packageId, nightId);
+  const origin = await requestOrigin();
+  const reservation = {
+    name,
+    email,
+    phone,
+    nightId,
+    packageId,
+    partySize,
+    notes: notes || undefined,
+  };
 
   try {
-    const snap = await createSnapTransaction(
+    const checkout = await createCheckoutPayment(orderId, reservation, {
+      callbackUrl: `${origin}/reserve/confirmed?order_id=${encodeURIComponent(orderId)}`,
+      notificationUrl: `${origin}/api/doku/notification`,
+    });
+
+    await insertReservationSafe({
       orderId,
-      {
-        name,
-        email,
-        phone,
-        nightId,
-        packageId,
-        partySize,
-        notes: notes || undefined,
-      },
-      `${await requestOrigin()}/reserve/confirmed`,
+      ...reservation,
+      amountIdr: table.priceIdr,
+      paymentUrl: checkout.paymentUrl,
+      paymentToken: checkout.tokenId,
+    });
+
+    return respond(
+      { ok: true, paymentUrl: checkout.paymentUrl, orderId },
+      orderId,
     );
-    return respond({ ok: true, token: snap.token, orderId }, orderId);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not start payment.";
