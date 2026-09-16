@@ -330,6 +330,11 @@ export async function createCheckoutPayment(
       phone: toDokuPhone(reservation.phone),
       country: "ID",
     },
+    collect_customer: {
+      name: true,
+      email: true,
+      phone: true,
+    },
     callbacks: {
       url: urls.callbackUrl,
     },
