@@ -34,6 +34,31 @@ export type DokuOrderStatus = {
   originalRequestId?: string;
 };
 
+/** Methods and display order on the Jokul page. API list wins over the dashboard selection. */
+export const CHECKOUT_PAYMENT_METHOD_TYPES = [
+  "VIRTUAL_ACCOUNT_BCA",
+  "VIRTUAL_ACCOUNT_BANK_MANDIRI",
+  "VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI",
+  "VIRTUAL_ACCOUNT_DOKU",
+  "VIRTUAL_ACCOUNT_BRI",
+  "VIRTUAL_ACCOUNT_BNI",
+  "VIRTUAL_ACCOUNT_BANK_PERMATA",
+  "VIRTUAL_ACCOUNT_BANK_CIMB",
+  "VIRTUAL_ACCOUNT_BANK_DANAMON",
+  "ONLINE_TO_OFFLINE_ALFA",
+  "CREDIT_CARD",
+  "DIRECT_DEBIT_BRI",
+  "EMONEY_SHOPEE_PAY",
+  "EMONEY_OVO",
+  "QRIS",
+  "PEER_TO_PEER_AKULAKU",
+  "PEER_TO_PEER_KREDIVO",
+  "PEER_TO_PEER_INDODANA",
+] as const;
+
+export const CHECKOUT_PAYMENT_DUE_MINUTES = 60;
+export const CHECKOUT_RECOVERY_MINUTES = 10_080;
+
 type JsonRecord = Record<string, unknown>;
 
 function getClientId() {
@@ -283,6 +308,8 @@ export async function createCheckoutPayment(
       callback_url_result: urls.callbackUrl,
       language: "EN",
       auto_redirect: true,
+      recover_abandoned_cart: true,
+      expired_recovered_cart: CHECKOUT_RECOVERY_MINUTES,
       line_items: [
         {
           id: table.id,
@@ -293,7 +320,8 @@ export async function createCheckoutPayment(
       ],
     },
     payment: {
-      payment_due_date: 60,
+      payment_due_date: CHECKOUT_PAYMENT_DUE_MINUTES,
+      payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
     },
     customer: {
       name: firstName,
@@ -301,6 +329,9 @@ export async function createCheckoutPayment(
       email: reservation.email,
       phone: toDokuPhone(reservation.phone),
       country: "ID",
+    },
+    callbacks: {
+      url: urls.callbackUrl,
     },
     additional_info: {
       override_notification_url: urls.notificationUrl,
