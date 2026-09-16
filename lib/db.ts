@@ -4,7 +4,10 @@ function connectionString() {
   const pooled = process.env.SUPABASE_DB_POOLER_URL;
   if (pooled) return pooled;
 
-  const direct = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+  const direct =
+    process.env.SUPABASE_DB_DIRECT_CONNECTION ??
+    process.env.SUPABASE_DB_URL ??
+    process.env.DATABASE_URL;
   if (direct) return direct;
 
   const password = process.env.SUPABASE_DB_PASSWORD;
