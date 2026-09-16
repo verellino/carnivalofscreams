@@ -17,7 +17,7 @@ export type InvoiceFields = {
   nik: string;
   phone: string;
   email: string;
-  sofa: string;
+  table: string;
   bookingCode: string;
   amountLabel: string;
 };
@@ -36,7 +36,7 @@ export function invoiceFields(
     nik: reservation.nik ?? "",
     phone: reservation.phone,
     email: reservation.email,
-    sofa: seat.label,
+    table: seat.label,
     bookingCode: reservation.orderId,
     amountLabel: formatIdr(reservation.amountIdr),
   };
@@ -55,7 +55,7 @@ function invoiceText(fields: InvoiceFields) {
     `NIK: ${fields.nik}`,
     `Phone: ${fields.phone}`,
     `Email: ${fields.email}`,
-    `Sofa: ${fields.sofa}`,
+    `Table: ${fields.table}`,
     `Booking code: ${fields.bookingCode}`,
     `Amount: ${fields.amountLabel}`,
   ].join("\n");

@@ -23,10 +23,10 @@ import {
 import { getSeat } from "@/lib/seats";
 import { getSiteUrl } from "@/lib/site";
 import {
+  asPackageId,
   getNight,
   getTablePackage,
   type NightId,
-  type TablePackageId,
 } from "@/lib/tables";
 
 export type CreateReservationResult =
@@ -56,12 +56,6 @@ function asNightId(value: unknown): NightId | undefined {
   return undefined;
 }
 
-function asPackageId(value: unknown): TablePackageId | undefined {
-  if (value === "standard" || value === "premiere" || value === "vip") {
-    return value;
-  }
-  return undefined;
-}
 
 function checkoutExpiry(expiredDate?: string) {
   if (!expiredDate) return undefined;
@@ -138,17 +132,17 @@ export async function createReservation(
     return respond({ ok: false, error: "Please choose a night." });
   }
   if (!packageId) {
-    return respond({ ok: false, error: "Please choose a sofa category." });
+    return respond({ ok: false, error: "Please choose a table category." });
   }
 
   const table = getTablePackage(packageId);
   if (!table) {
-    return respond({ ok: false, error: "Please choose a sofa category." });
+    return respond({ ok: false, error: "Please choose a table category." });
   }
 
   const seat = getSeat(seatId);
   if (!seat || seat.packageId !== packageId) {
-    return respond({ ok: false, error: "Please pick a sofa in that category." });
+    return respond({ ok: false, error: "Please pick a seat in that category." });
   }
 
   const orderId = newOrderId(packageId, nightId);
@@ -179,12 +173,12 @@ export async function createReservation(
   } catch (error) {
     if (isUniqueViolation(error)) {
       return respond(
-        { ok: false, error: "That sofa was just taken. Pick another." },
+        { ok: false, error: "That seat was just taken. Pick another." },
         orderId,
       );
     }
     const message =
-      error instanceof Error ? error.message : "Could not hold that sofa.";
+      error instanceof Error ? error.message : "Could not hold that seat.";
     return respond({ ok: false, error: message }, orderId);
   }
 
@@ -235,13 +229,13 @@ export async function selectReservationSeat(
   });
 
   if (!ORDER_ID_RE.test(orderId) || !getSeat(seatId)) {
-    return { ok: false, error: "Please pick a sofa." };
+    return { ok: false, error: "Please pick a seat." };
   }
 
   try {
     const claimed = await claimReservationSeat(orderId, seatId);
     if (!claimed) {
-      return { ok: false, error: "That sofa was just taken. Pick another." };
+      return { ok: false, error: "That seat was just taken. Pick another." };
     }
     await sendReservationInvoice(claimed, "/reserve/confirmed");
     await insertAuditLogSafe({
@@ -256,7 +250,7 @@ export async function selectReservationSeat(
     return { ok: true };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Could not hold that sofa.";
+      error instanceof Error ? error.message : "Could not hold that seat.";
     const latest = await getReservationSafe(orderId);
     await insertAuditLogSafe({
       event: "reservation.seat.error",

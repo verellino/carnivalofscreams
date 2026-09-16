@@ -206,13 +206,19 @@ export function parseOrderId(orderId: string) {
   const nightId: NightId = match[1] === "31" ? "oct-31" : "oct-30";
   const packCode = match[2];
   const packageId: TablePackageId | undefined =
-    packCode === "STA"
-      ? "standard"
+    packCode === "REG"
+      ? "regular"
       : packCode === "PRE"
-        ? "premiere"
-        : packCode === "VIP"
-          ? "vip"
-          : undefined;
+        ? "premium"
+        : packCode === "COM"
+          ? "communal"
+          : packCode === "SOF"
+            ? "sofa"
+            : packCode === "STA"
+              ? "regular"
+              : packCode === "VIP"
+                ? "sofa"
+                : undefined;
 
   return { nightId, packageId };
 }

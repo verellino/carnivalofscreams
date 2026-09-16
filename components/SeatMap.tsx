@@ -1,10 +1,7 @@
 "use client";
 
-import { SOFAS, type SofaSeat } from "@/lib/seats";
+import { MAP_VIEWBOX, SOFAS, type SofaSeat } from "@/lib/seats";
 import type { TablePackageId } from "@/lib/tables";
-
-const LINE = "rgba(255,255,255,0.28)";
-const LINE_SOFT = "rgba(255,255,255,0.14)";
 
 type Mode = "preview" | "pick";
 
@@ -14,6 +11,28 @@ type Props = {
   selectedSeatId?: string | null;
   takenSeatIds?: string[];
   onSelect?: (seat: SofaSeat) => void;
+};
+
+const PACKAGE_STYLE: Record<
+  TablePackageId,
+  { fill: string; stroke: string }
+> = {
+  sofa: {
+    fill: "rgba(56,189,248,0.22)",
+    stroke: "rgba(125,211,252,0.95)",
+  },
+  premium: {
+    fill: "rgba(250,204,21,0.18)",
+    stroke: "rgba(250,204,21,0.9)",
+  },
+  regular: {
+    fill: "rgba(255,255,255,0.12)",
+    stroke: "rgba(255,255,255,0.85)",
+  },
+  communal: {
+    fill: "rgba(244,114,182,0.2)",
+    stroke: "rgba(244,114,182,0.9)",
+  },
 };
 
 export default function SeatMap({
@@ -27,58 +46,17 @@ export default function SeatMap({
 
   return (
     <div className="pass-panel relative overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,0.06) 27px, rgba(255,255,255,0.06) 28px), repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(255,255,255,0.06) 27px, rgba(255,255,255,0.06) 28px)",
-        }}
-      />
-
       <svg
-        viewBox="0 0 640 760"
+        viewBox={`0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`}
         className="relative z-10 h-auto w-full"
         role="img"
         aria-label="Venue floor plan"
       >
-        <rect
-          x="28"
-          y="28"
-          width="584"
-          height="704"
-          fill="none"
-          stroke={LINE}
-          strokeWidth="1"
+        <image
+          href="/images/venue-layout.webp"
+          width={MAP_VIEWBOX.width}
+          height={MAP_VIEWBOX.height}
         />
-        <rect
-          x="40"
-          y="40"
-          width="560"
-          height="680"
-          fill="none"
-          stroke={LINE_SOFT}
-          strokeDasharray="6 8"
-        />
-
-        <rect
-          x="170"
-          y="56"
-          width="300"
-          height="72"
-          fill="rgba(255,255,255,0.06)"
-          stroke={LINE}
-        />
-        <text
-          x="320"
-          y="98"
-          textAnchor="middle"
-          fill="#ffffff"
-          fontSize="18"
-          letterSpacing="6"
-          fontFamily="var(--font-angie), Helvetica, sans-serif"
-        >
-          STAGE
-        </text>
 
         {SOFAS.map((seat) => {
           const inCategory = !packageId || seat.packageId === packageId;
@@ -86,25 +64,26 @@ export default function SeatMap({
           const isSelected = selectedSeatId === seat.id;
           const pickable = mode === "pick" && inCategory && !isTaken;
           const dimmed = packageId ? !inCategory : false;
+          const pack = PACKAGE_STYLE[seat.packageId];
           const fill = isSelected
-            ? "rgba(255,255,255,0.22)"
+            ? "rgba(255,255,255,0.28)"
             : isTaken
-              ? "rgba(196,69,58,0.18)"
+              ? "rgba(196,69,58,0.35)"
               : inCategory
-                ? "rgba(255,255,255,0.08)"
+                ? pack.fill
                 : "transparent";
           const stroke = isSelected
             ? "rgba(255,255,255,0.95)"
             : isTaken
-              ? "rgba(196,69,58,0.7)"
+              ? "rgba(196,69,58,0.9)"
               : inCategory
-                ? "rgba(255,255,255,0.55)"
-                : "rgba(255,255,255,0.18)";
+                ? pack.stroke
+                : "rgba(255,255,255,0.2)";
 
           return (
             <g
               key={seat.id}
-              opacity={dimmed ? 0.28 : 1}
+              opacity={dimmed ? 0.22 : 1}
               style={{ cursor: pickable ? "pointer" : "default" }}
               onClick={() => {
                 if (pickable) onSelect?.(seat);
@@ -113,36 +92,18 @@ export default function SeatMap({
               <circle
                 cx={seat.x}
                 cy={seat.y}
-                r="48"
+                r="26"
                 fill={fill}
                 stroke={stroke}
-                strokeDasharray={isTaken || isSelected ? undefined : "4 6"}
+                strokeWidth={isSelected || isTaken ? 4 : 3}
               />
-              <circle
-                cx={seat.x}
-                cy={seat.y}
-                r="10"
-                fill="rgba(255,255,255,0.2)"
-              />
-              {[0, 60, 120, 180, 240, 300].map((deg) => {
-                const rad = (deg * Math.PI) / 180;
-                return (
-                  <circle
-                    key={deg}
-                    cx={seat.x + Math.cos(rad) * 34}
-                    cy={seat.y + Math.sin(rad) * 34}
-                    r="5"
-                    fill="rgba(255,255,255,0.28)"
-                  />
-                );
-              })}
               <text
                 x={seat.x}
-                y={seat.y + 70}
+                y={seat.y + 6}
                 textAnchor="middle"
                 fill="#ffffff"
-                fontSize="13"
-                letterSpacing="3"
+                fontSize="16"
+                letterSpacing="1"
                 fontFamily="var(--font-angie), Helvetica, sans-serif"
               >
                 {seat.short}

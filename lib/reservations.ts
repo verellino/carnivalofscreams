@@ -1,6 +1,6 @@
 import { getSql } from "./db";
 import { getSeat } from "./seats";
-import type { NightId, TablePackageId } from "./tables";
+import { asPackageId, type NightId, type TablePackageId } from "./tables";
 
 export type ReservationRecord = {
   orderId: string;
@@ -55,12 +55,6 @@ function asNightId(value: string): NightId | undefined {
   return undefined;
 }
 
-function asPackageId(value: string): TablePackageId | undefined {
-  if (value === "standard" || value === "premiere" || value === "vip") {
-    return value;
-  }
-  return undefined;
-}
 
 function mapReservation(row: ReservationRow): ReservationRecord | null {
   const nightId = asNightId(row.night_id);
@@ -375,7 +369,7 @@ export async function claimReservationSeat(orderId: string, seatId: string) {
 
   const seat = getSeat(seatId);
   if (!seat || seat.packageId !== reservation.packageId) {
-    throw new Error("That sofa is not in the category you paid for.");
+    throw new Error("That seat is not in the category you paid for.");
   }
 
   if (reservation.seatId) {
@@ -418,12 +412,12 @@ export async function claimReservationSeat(orderId: string, seatId: string) {
 
     const row = rows[0];
     if (!row) {
-      throw new Error("That sofa was just taken. Pick another.");
+      throw new Error("That seat was just taken. Pick another.");
     }
     return mapReservation(row);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new Error("That sofa was just taken. Pick another.");
+      throw new Error("That seat was just taken. Pick another.");
     }
     throw error;
   }

@@ -15,7 +15,7 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-export type ReserveStep = "identity" | "night" | "category" | "sofa" | "pay";
+export type ReserveStep = "identity" | "night" | "category" | "seat" | "pay";
 
 export type ReservePreview = {
   step: ReserveStep;
@@ -32,7 +32,8 @@ type Props = {
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
-const STEPS: ReserveStep[] = ["identity", "night", "category", "sofa", "pay"];
+const STEPS: ReserveStep[] = ["identity", "night", "category", "seat", "pay"];
+const STEP_LABELS = ["Details", "Day", "Category", "Seat", "Pay"] as const;
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -72,32 +73,35 @@ export default function ReserveForm({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nightId, setNightId] = useState<NightId>("oct-30");
-  const [packageId, setPackageId] = useState<TablePackageId>("premiere");
+  const [packageId, setPackageId] = useState<TablePackageId>("sofa");
   const [seatId, setSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
 
   const table = TABLE_PACKAGES.find((pack) => pack.id === packageId)!;
-  const sofa = seatId ? getSeat(seatId) : undefined;
+  const seat = seatId ? getSeat(seatId) : undefined;
   const busy = pending || paying;
   const stepIndex = STEPS.indexOf(step);
   const categorySeats = seatsForPackage(packageId);
   const availableSeats = categorySeats.filter(
-    (seat) => !takenSeatIds.includes(seat.id),
+    (item) => !takenSeatIds.includes(item.id),
   );
 
   useEffect(() => {
     onPreviewChange?.({ step, packageId, nightId, seatId });
   }, [step, packageId, nightId, seatId, onPreviewChange]);
 
-  useEffect(() => {
-    if (!mapSeatId) return;
-    const seat = getSeat(mapSeatId);
-    if (seat && seat.packageId === packageId && !takenSeatIds.includes(seat.id)) {
-      setSeatId(seat.id);
+  if (mapSeatId && mapSeatId !== seatId) {
+    const mapped = getSeat(mapSeatId);
+    if (
+      mapped &&
+      mapped.packageId === packageId &&
+      !takenSeatIds.includes(mapped.id)
+    ) {
+      setSeatId(mapped.id);
     }
-  }, [mapSeatId, packageId, takenSeatIds]);
+  }
 
   function logCheckoutCallback(event: string, payload: unknown) {
     void fetch("/api/doku/checkout-callback", {
@@ -146,15 +150,15 @@ export default function ReserveForm({
       return;
     }
     if (step === "category") {
-      setStep("sofa");
+      setStep("seat");
       return;
     }
-    if (step === "sofa") {
-      if (!seatId || !availableSeats.some((seat) => seat.id === seatId)) {
+    if (step === "seat") {
+      if (!seatId || !availableSeats.some((item) => item.id === seatId)) {
         setError(
           availableSeats.length === 0
-            ? "Every sofa in this category is held. Try another category or night."
-            : "Please pick a sofa.",
+            ? "Every seat in this category is held. Try another category or night."
+            : "Please pick a seat on the floor plan.",
         );
         return;
       }
@@ -166,8 +170,8 @@ export default function ReserveForm({
     setError(null);
     if (step === "night") setStep("identity");
     if (step === "category") setStep("night");
-    if (step === "sofa") setStep("category");
-    if (step === "pay") setStep("sofa");
+    if (step === "seat") setStep("category");
+    if (step === "pay") setStep("seat");
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -178,7 +182,7 @@ export default function ReserveForm({
     }
 
     if (!seatId) {
-      setError("Please pick a sofa.");
+      setError("Please pick a seat on the floor plan.");
       return;
     }
 
@@ -242,15 +246,7 @@ export default function ReserveForm({
                     : "text-white/25"
               }`}
             >
-              {index === 0
-                ? "Details"
-                : index === 1
-                  ? "Day"
-                  : index === 2
-                    ? "Category"
-                    : index === 3
-                      ? "Sofa"
-                      : "Pay"}
+              {STEP_LABELS[index]}
             </li>
           ))}
         </ol>
@@ -371,7 +367,7 @@ export default function ReserveForm({
         {step === "category" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a sofa category
+              Choose a table
             </legend>
             <div className="mt-3 flex flex-col gap-2">
               {TABLE_PACKAGES.map((pack) => {
@@ -393,7 +389,9 @@ export default function ReserveForm({
                       onChange={() => {
                         setPackageId(pack.id);
                         setSeatId((current) => {
-                          const currentSeat = current ? getSeat(current) : undefined;
+                          const currentSeat = current
+                            ? getSeat(current)
+                            : undefined;
                           return currentSeat?.packageId === pack.id
                             ? current
                             : null;
@@ -409,29 +407,48 @@ export default function ReserveForm({
                         {formatIdr(pack.priceIdr)}
                       </span>
                     </span>
+                    <span className="mt-2 block text-sm text-white/55">
+                      Seating capacity: {pack.seats} pax
+                    </span>
                     <span className="mt-1 block text-sm text-white/55">
-                      {pack.seats} seats · {pack.blurb}
+                      {pack.tickets} event tickets · {pack.reservation}
+                    </span>
+                    <span className="mt-3 block font-heading text-[11px] tracking-[0.18em] text-white">
+                      Minimum spend {formatIdr(pack.minSpendIdr)}
+                    </span>
+                    <span className="mt-2 block text-xs leading-relaxed text-white/40">
+                      Seating capacity is {pack.seats} pax, while the booking
+                      fee includes {pack.tickets} event tickets only.
                     </span>
                   </label>
                 );
               })}
             </div>
+            <ul className="mt-4 space-y-1 text-xs leading-relaxed text-white/40">
+              <li>Paid separately at the venue</li>
+              <li>Minimum spend is not included in the booking fee</li>
+              <li>Booking fee is non-deductible from minimum spend</li>
+            </ul>
           </fieldset>
         ) : null}
 
-        {step === "sofa" ? (
+        {step === "seat" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a sofa
+              Choose a seat
             </legend>
-            <div className="mt-3 flex flex-col gap-2">
-              {categorySeats.map((seat) => {
-                const taken = takenSeatIds.includes(seat.id);
-                const selected = seatId === seat.id;
+            <p className="mt-3 text-sm text-white/55">
+              Tap a marker on the floor plan, or pick from the list. Paying holds
+              this seat for 60 minutes.
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {categorySeats.map((item) => {
+                const taken = takenSeatIds.includes(item.id);
+                const selected = seatId === item.id;
                 return (
                   <label
-                    key={seat.id}
-                    className={`border p-4 transition-colors ${
+                    key={item.id}
+                    className={`border px-2 py-3 text-center transition-colors ${
                       taken
                         ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
                         : selected
@@ -442,34 +459,22 @@ export default function ReserveForm({
                     <input
                       type="radio"
                       name="seat"
-                      value={seat.id}
+                      value={item.id}
                       checked={selected}
                       disabled={taken}
-                      onChange={() => setSeatId(seat.id)}
+                      onChange={() => setSeatId(item.id)}
                       className="sr-only"
                     />
-                    <span className="flex items-baseline justify-between gap-3">
-                      <span className="font-heading text-sm tracking-[0.16em] text-white">
-                        {seat.label}
-                      </span>
-                      {taken ? (
-                        <span className="font-heading text-[10px] tracking-[0.18em] text-white/40">
-                          Held
-                        </span>
-                      ) : selected ? (
-                        <span className="font-heading text-[10px] tracking-[0.18em] text-white/55">
-                          Selected
-                        </span>
-                      ) : null}
+                    <span className="block font-heading text-[11px] tracking-[0.16em] text-white">
+                      {item.short}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-white/45">
+                      {taken ? "Held" : selected ? "Selected" : item.label}
                     </span>
                   </label>
                 );
               })}
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-white/40">
-              Paying holds this sofa for 60 minutes. The hold and the payment
-              expire together.
-            </p>
           </fieldset>
         ) : null}
 
@@ -493,11 +498,18 @@ export default function ReserveForm({
               {NIGHTS.find((night) => night.id === nightId)?.label}
             </p>
             <p>
-              <span className="text-white/40">Category</span> {table.name} ·{" "}
+              <span className="text-white/40">Category</span> {table.name}
+            </p>
+            <p>
+              <span className="text-white/40">Seat</span> {seat?.label}
+            </p>
+            <p>
+              <span className="text-white/40">Booking fee</span>{" "}
               {formatIdr(table.priceIdr)}
             </p>
             <p>
-              <span className="text-white/40">Sofa</span> {sofa?.label}
+              <span className="text-white/40">Minimum spend</span>{" "}
+              {formatIdr(table.minSpendIdr)} at the venue
             </p>
           </div>
         ) : null}
@@ -547,8 +559,10 @@ export default function ReserveForm({
 
         {step === "pay" ? (
           <p className="text-xs leading-relaxed text-white/40">
-            Pay within 60 minutes to keep this sofa. The hold and the payment
-            expire together. We send the invoice by email and WhatsApp.
+            Pay the booking fee within 60 minutes to keep this seat. The hold and
+            the payment expire together. Minimum spend is paid at the venue and
+            is not included in the booking fee. We send the invoice by email and
+            WhatsApp.
           </p>
         ) : null}
       </form>

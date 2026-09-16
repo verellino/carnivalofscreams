@@ -144,7 +144,7 @@ export default async function ReservationConfirmedPage({
     nightId: reservation?.nightId,
     packageId: reservation?.packageId,
   });
-  const sofa = reservation?.seatId ? getSeat(reservation.seatId) : undefined;
+  const seat = reservation?.seatId ? getSeat(reservation.seatId) : undefined;
 
   const details = (
     <ul className="mt-8 space-y-2 text-sm text-white/65">
@@ -182,9 +182,9 @@ export default async function ReservationConfirmedPage({
           <span className="text-white/40">Category</span> {summary.table.name}
         </li>
       ) : null}
-      {sofa ? (
+      {seat ? (
         <li>
-          <span className="text-white/40">Sofa</span> {sofa.label}
+          <span className="text-white/40">Seat</span> {seat.label}
         </li>
       ) : null}
       {summary.amountLabel ? (
@@ -203,10 +203,10 @@ export default async function ReservationConfirmedPage({
           Payment received
         </p>
         <h1 className="pass-title mt-5 font-heading text-4xl tracking-[0.14em] text-white sm:text-5xl">
-          Pick your sofa.
+          Pick your seat.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">
-          Choose a sofa in the {summary.table?.name ?? "paid"} category. We send
+          Choose a seat in the {summary.table?.name ?? "paid"} category. We send
           the invoice by email and WhatsApp after you confirm.
         </p>
         <div className="mt-10">
@@ -225,7 +225,7 @@ export default async function ReservationConfirmedPage({
     return (
       <StatusShell
         kicker="Reservation held"
-        title="Your sofa is held."
+        title="Your table is held."
         body="The invoice is on its way by email and WhatsApp. Bring the booking code to the door."
         action={{ href: "/", label: "Back home" }}
       >
@@ -245,8 +245,8 @@ export default async function ReservationConfirmedPage({
     return (
       <StatusShell
         kicker="Hold released"
-        title="This sofa is free again."
-        body="The payment window closed, so the hold expired with it. Start a new table hold if you still want a sofa."
+        title="This seat is free again."
+        body="The payment window closed, so the hold expired with it. Start a new table hold if you still want a seat."
         action={{ href: "/reserve", label: "Reserve a table" }}
       >
         {details}
@@ -258,8 +258,8 @@ export default async function ReservationConfirmedPage({
     return (
       <StatusShell
         kicker="Awaiting payment"
-        title="Finish paying to keep this sofa."
-        body="Complete the transfer in DOKU. This sofa stays held until the 60-minute payment window closes."
+        title="Finish paying to keep this seat."
+        body="Complete the transfer in DOKU. This seat stays held until the 60-minute payment window closes."
         action={{ href: "/reserve", label: "Start again" }}
       >
         {details}
