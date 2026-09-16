@@ -310,7 +310,7 @@ export async function createCheckoutPayment(
   const { firstName, lastName } = splitName(reservation.name);
   const seat = getSeat(reservation.seatId);
   const itemName = seat
-    ? `${table.name} ${night.short} · ${seat.label}`
+    ? `${table.name} ${night.short} - ${seat.label}`
     : `${table.name} ${night.short}`;
   const requestTarget = "/checkout/v1/payment";
   const body = JSON.stringify({
@@ -342,11 +342,6 @@ export async function createCheckoutPayment(
       email: reservation.email,
       phone: toDokuPhone(reservation.phone),
       country: "ID",
-    },
-    collect_customer: {
-      name: true,
-      email: true,
-      phone: true,
     },
     callbacks: {
       url: urls.callbackUrl,
