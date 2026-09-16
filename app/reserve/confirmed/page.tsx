@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import SeatPicker from "@/components/SeatPicker";
 import {
   insertAuditLogSafe,
   insertDokuCallbackSafe,
@@ -13,11 +14,13 @@ import {
   isPendingStatus,
   summarizeReservation,
 } from "@/lib/doku";
+import { sendReservationInvoice } from "@/lib/invoice";
 import {
   getReservationSafe,
+  listTakenSeatIdsSafe,
   markReservationPaidSafe,
 } from "@/lib/reservations";
-import { sendPaidReservationWhatsApp } from "@/lib/whatsapp";
+import { getSeat } from "@/lib/seats";
 
 export const metadata: Metadata = {
   title: "Reservation status",
@@ -91,7 +94,7 @@ export default async function ReservationConfirmedPage({
     );
   }
 
-  const reservation = await getReservationSafe(orderId);
+  let reservation = await getReservationSafe(orderId);
   let status;
   try {
     status = await getOrderStatus(orderId);
@@ -116,20 +119,16 @@ export default async function ReservationConfirmedPage({
   const pending = isPendingStatus(transactionStatus, status?.orderStatus);
 
   if (paid && reservation?.status !== "paid") {
-    await markReservationPaidSafe({
-      orderId,
-      transactionStatus: transactionStatus ?? "SUCCESS",
-      channelId: status?.channelId ?? reservation?.channelId,
-    });
+    reservation =
+      (await markReservationPaidSafe({
+        orderId,
+        transactionStatus: transactionStatus ?? "SUCCESS",
+        channelId: status?.channelId ?? reservation?.channelId,
+      })) ?? reservation;
   }
 
   if (paid) {
-    const latest =
-      (await getReservationSafe(orderId)) ??
-      (reservation
-        ? { ...reservation, status: "paid" as const }
-        : null);
-    await sendPaidReservationWhatsApp(latest, "/reserve/confirmed");
+    reservation = (await getReservationSafe(orderId)) ?? reservation;
   }
 
   const summary = summarizeReservation({
@@ -137,27 +136,48 @@ export default async function ReservationConfirmedPage({
     amount: status?.amount ?? reservation?.amountIdr,
     nightId: reservation?.nightId,
     packageId: reservation?.packageId,
-    partySize: reservation?.partySize,
   });
+  const sofa = reservation?.seatId ? getSeat(reservation.seatId) : undefined;
 
   const details = (
     <ul className="mt-8 space-y-2 text-sm text-white/65">
       <li>
-        <span className="text-white/40">Order</span> {orderId}
+        <span className="text-white/40">Booking code</span> {orderId}
       </li>
+      {reservation?.name ? (
+        <li>
+          <span className="text-white/40">Name</span> {reservation.name}
+        </li>
+      ) : null}
+      {reservation?.nik ? (
+        <li>
+          <span className="text-white/40">NIK</span> {reservation.nik}
+        </li>
+      ) : null}
+      {reservation?.phone ? (
+        <li>
+          <span className="text-white/40">Phone</span> {reservation.phone}
+        </li>
+      ) : null}
+      {reservation?.email ? (
+        <li>
+          <span className="text-white/40">Email</span> {reservation.email}
+        </li>
+      ) : null}
       {summary.night ? (
         <li>
-          <span className="text-white/40">Night</span> {summary.night.label}
+          <span className="text-white/40">Day</span> {summary.night.day} ·{" "}
+          {summary.night.label}
         </li>
       ) : null}
       {summary.table ? (
         <li>
-          <span className="text-white/40">Table</span> {summary.table.name}
+          <span className="text-white/40">Category</span> {summary.table.name}
         </li>
       ) : null}
-      {summary.partySize ? (
+      {sofa ? (
         <li>
-          <span className="text-white/40">Party</span> {summary.partySize}
+          <span className="text-white/40">Sofa</span> {sofa.label}
         </li>
       ) : null}
       {summary.amountLabel ? (
@@ -168,12 +188,38 @@ export default async function ReservationConfirmedPage({
     </ul>
   );
 
-  if (paid) {
+  if (paid && reservation && !reservation.seatId) {
+    const takenSeatIds = await listTakenSeatIdsSafe(reservation.nightId);
+    return (
+      <div className="mx-auto flex w-full max-w-4xl flex-col px-6 pb-28 pt-24 text-center sm:pt-32">
+        <p className="font-heading text-[11px] tracking-[0.42em] text-white/55 sm:text-xs">
+          Payment received
+        </p>
+        <h1 className="pass-title mt-5 font-heading text-4xl tracking-[0.14em] text-white sm:text-5xl">
+          Pick your sofa.
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/55 sm:text-base">
+          Choose a sofa in the {summary.table?.name ?? "paid"} category. We send
+          the invoice by email and WhatsApp after you confirm.
+        </p>
+        <div className="mt-10">
+          <SeatPicker
+            orderId={orderId}
+            packageId={reservation.packageId}
+            takenSeatIds={takenSeatIds}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (paid && reservation?.seatId) {
+    await sendReservationInvoice(reservation, "/reserve/confirmed");
     return (
       <StatusShell
-        kicker="Payment received"
-        title="Your table is held."
-        body="We will confirm your reservation by WhatsApp. Bring the order number to the door."
+        kicker="Reservation held"
+        title="Your sofa is held."
+        body="The invoice is on its way by email and WhatsApp. Bring the booking code to the door."
         action={{ href: "/", label: "Back home" }}
       >
         {details}
@@ -185,8 +231,8 @@ export default async function ReservationConfirmedPage({
     return (
       <StatusShell
         kicker="Awaiting payment"
-        title="Finish paying to keep the table."
-        body="Complete the transfer in DOKU. We confirm the table by WhatsApp once the payment settles."
+        title="Finish paying to keep the hold."
+        body="Complete the transfer in DOKU. After it clears, you pick your sofa."
         action={{ href: "/reserve", label: "Start again" }}
       >
         {details}

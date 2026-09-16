@@ -10,12 +10,11 @@ import {
 
 export type ReservationPayload = {
   name: string;
+  nik: string;
   email: string;
   phone: string;
   nightId: NightId;
   packageId: TablePackageId;
-  partySize: number;
-  notes?: string;
 };
 
 export type DokuCheckout = {

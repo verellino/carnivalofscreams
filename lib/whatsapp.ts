@@ -1,10 +1,7 @@
-import { insertAuditLogSafe } from "./audit";
 import { dokuRequestHeaders, isDokuProduction, toWhatsAppPhone } from "./doku";
-import {
-  markWhatsAppSentSafe,
-  type ReservationRecord,
-} from "./reservations";
-import { formatIdr, getNight, getTablePackage } from "./tables";
+import type { ReservationRecord } from "./reservations";
+import { getSeat } from "./seats";
+import { getNight } from "./tables";
 
 type WhatsAppResponse = {
   status?: string;
@@ -35,14 +32,16 @@ function whatsappApiBase() {
 }
 
 export function whatsappParams(reservation: ReservationRecord) {
-  const table = getTablePackage(reservation.packageId);
   const night = getNight(reservation.nightId);
+  const seat = reservation.seatId ? getSeat(reservation.seatId) : undefined;
   return [
+    night ? `${night.day} · ${night.label}` : reservation.nightId,
     reservation.name,
-    table?.name ?? reservation.packageId,
-    night?.label ?? reservation.nightId,
+    reservation.nik ?? "",
+    reservation.phone,
+    reservation.email,
+    seat?.label ?? "",
     reservation.orderId,
-    formatIdr(reservation.amountIdr),
   ];
 }
 
@@ -89,43 +88,4 @@ export async function sendReservationWhatsApp(reservation: ReservationRecord) {
     phone: reservation.phone,
     params: whatsappParams(reservation),
   });
-}
-
-export async function sendPaidReservationWhatsApp(
-  reservation: ReservationRecord | null,
-  sourcePath: string,
-) {
-  if (
-    !reservation ||
-    reservation.status !== "paid" ||
-    reservation.whatsappSentAt ||
-    !isWhatsAppConfigured()
-  ) {
-    return;
-  }
-
-  try {
-    const result = await sendReservationWhatsApp(reservation);
-    if (result.messageId) {
-      await markWhatsAppSentSafe(reservation.orderId, result.messageId);
-      await insertAuditLogSafe({
-        event: "reservation.whatsapp.sent",
-        orderId: reservation.orderId,
-        method: "POST",
-        path: sourcePath,
-        payload: { messageId: result.messageId, status: result.status },
-      });
-    }
-  } catch (error) {
-    console.error("[doku] failed to send WhatsApp confirmation", error);
-    await insertAuditLogSafe({
-      event: "reservation.whatsapp.error",
-      orderId: reservation.orderId,
-      method: "POST",
-      path: sourcePath,
-      payload: {
-        error: error instanceof Error ? error.message : "unknown",
-      },
-    });
-  }
 }

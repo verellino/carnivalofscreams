@@ -7,11 +7,7 @@ import {
   insertDokuCallback,
 } from "@/lib/audit";
 import { isPaidStatus, verifyNotificationSignature } from "@/lib/doku";
-import {
-  getReservationSafe,
-  markReservationPaidSafe,
-} from "@/lib/reservations";
-import { sendPaidReservationWhatsApp } from "@/lib/whatsapp";
+import { markReservationPaidSafe } from "@/lib/reservations";
 
 export const runtime = "nodejs";
 
@@ -80,13 +76,11 @@ export async function POST(request: Request) {
   }
 
   if (isPaidStatus(fields.transactionStatus ?? undefined) && fields.orderId) {
-    const paid = await markReservationPaidSafe({
+    await markReservationPaidSafe({
       orderId: fields.orderId,
       transactionStatus: fields.transactionStatus ?? "SUCCESS",
       channelId: fields.paymentType,
     });
-    const reservation = paid ?? (await getReservationSafe(fields.orderId));
-    await sendPaidReservationWhatsApp(reservation, "/api/doku/notification");
   }
 
   return NextResponse.json({ ok: true });

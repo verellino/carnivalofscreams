@@ -1,12 +1,14 @@
 export const NIGHTS = [
   {
     id: "oct-30",
+    day: "Day 1",
     label: "Friday 30 October",
     short: "30 Oct",
     date: "2026-10-30",
   },
   {
     id: "oct-31",
+    day: "Day 2",
     label: "Saturday 31 October",
     short: "31 Oct",
     date: "2026-10-31",
