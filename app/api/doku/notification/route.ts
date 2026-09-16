@@ -9,8 +9,11 @@ import {
 import {
   isExpiredStatus,
   isPaidStatus,
+  markNotificationSeen,
+  notificationAck,
+  readNotificationHeaders,
   readDokuStatus,
-  verifyNotificationSignature,
+  verifyIncomingNotification,
 } from "@/lib/doku";
 import { sendReservationInvoice } from "@/lib/invoice";
 import {
@@ -35,26 +38,15 @@ export async function POST(request: Request) {
   }
 
   const fields = callbackFields(payload);
-  const clientId = request.headers.get("client-id") ?? "";
-  const requestId = request.headers.get("request-id") ?? "";
-  const timestamp = request.headers.get("request-timestamp") ?? "";
-  const signature = request.headers.get("signature") ?? "";
-  let signatureValid: boolean | null = null;
-
-  if (clientId && requestId && timestamp && signature) {
-    try {
-      signatureValid = verifyNotificationSignature({
-        clientId,
-        requestId,
-        timestamp,
+  const headers = readNotificationHeaders(request.headers);
+  const check = headers
+    ? verifyIncomingNotification({
+        headers,
         requestTarget,
         rawBody: rawText,
-        signature,
-      });
-    } catch {
-      signatureValid = false;
-    }
-  }
+      })
+    : undefined;
+  const signatureValid = check?.ok === true ? true : check ? false : null;
 
   try {
     await insertDokuCallback({
@@ -76,12 +68,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Persist failed" }, { status: 500 });
   }
 
-  if (!clientId || !requestId || !timestamp || !signature) {
+  if (!headers) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  if (!signatureValid) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+  if (!check?.ok) {
+    return NextResponse.json(
+      { error: check?.error ?? "Invalid signature" },
+      { status: 400 },
+    );
+  }
+
+  if (check.replay) {
+    return NextResponse.json(notificationAck());
   }
 
   const dokuStatus = readDokuStatus(payload);
@@ -103,5 +102,6 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  markNotificationSeen(headers.requestId);
+  return NextResponse.json(notificationAck());
 }
