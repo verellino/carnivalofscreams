@@ -114,7 +114,7 @@ export default function ReserveForm({ enabled, checkoutJsUrl }: Props) {
 
   return (
     <>
-      {checkoutJsUrl ? (
+      {enabled && checkoutJsUrl ? (
         <Script
           id="doku-checkout"
           src={checkoutJsUrl}
