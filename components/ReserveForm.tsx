@@ -10,6 +10,7 @@ import { getSeat, seatsForPackage } from "@/lib/seats";
 import {
   formatIdr,
   NIGHTS,
+  RESID_AREA,
   TABLE_PACKAGES,
   type NightId,
   type TablePackageId,
@@ -28,12 +29,12 @@ type Props = {
   enabled: boolean;
   checkoutJsUrl: string;
   takenSeatIds: string[];
-  mapSeatId?: string | null;
+  mapPick?: { id: string; nonce: number } | null;
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
 const STEPS: ReserveStep[] = ["identity", "night", "category", "seat", "pay"];
-const STEP_LABELS = ["Details", "Day", "Category", "Seat", "Pay"] as const;
+const STEP_LABELS = ["Details", "Day", "Area", "Table", "Pay"] as const;
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -63,7 +64,7 @@ export default function ReserveForm({
   enabled,
   checkoutJsUrl,
   takenSeatIds,
-  mapSeatId,
+  mapPick,
   onPreviewChange,
 }: Props) {
   const [step, setStep] = useState<ReserveStep>("identity");
@@ -73,11 +74,12 @@ export default function ReserveForm({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nightId, setNightId] = useState<NightId>("oct-30");
-  const [packageId, setPackageId] = useState<TablePackageId>("sofa");
+  const [packageId, setPackageId] = useState<TablePackageId>("luxer");
   const [seatId, setSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
+  const [appliedMapNonce, setAppliedMapNonce] = useState(0);
 
   const table = TABLE_PACKAGES.find((pack) => pack.id === packageId)!;
   const seat = seatId ? getSeat(seatId) : undefined;
@@ -92,14 +94,17 @@ export default function ReserveForm({
     onPreviewChange?.({ step, packageId, nightId, seatId });
   }, [step, packageId, nightId, seatId, onPreviewChange]);
 
-  if (mapSeatId && mapSeatId !== seatId) {
-    const mapped = getSeat(mapSeatId);
-    if (
-      mapped &&
-      mapped.packageId === packageId &&
-      !takenSeatIds.includes(mapped.id)
-    ) {
-      setSeatId(mapped.id);
+  if (mapPick && mapPick.nonce !== appliedMapNonce) {
+    const mapped = getSeat(mapPick.id);
+    if (!mapped || takenSeatIds.includes(mapped.id)) {
+      setAppliedMapNonce(mapPick.nonce);
+    } else {
+      const sameArea = mapped.packageId === packageId;
+      if (step === "category" || sameArea) {
+        setAppliedMapNonce(mapPick.nonce);
+        if (!sameArea) setPackageId(mapped.packageId);
+        if (seatId !== mapped.id) setSeatId(mapped.id);
+      }
     }
   }
 
@@ -157,8 +162,8 @@ export default function ReserveForm({
       if (!seatId || !availableSeats.some((item) => item.id === seatId)) {
         setError(
           availableSeats.length === 0
-            ? "Every seat in this category is held. Try another category or night."
-            : "Please pick a seat on the floor plan.",
+            ? "Every table in this area is held. Try another area or night."
+            : "Please pick a table on the floor plan.",
         );
         return;
       }
@@ -182,7 +187,7 @@ export default function ReserveForm({
     }
 
     if (!seatId) {
-      setError("Please pick a seat on the floor plan.");
+      setError("Please pick a table on the floor plan.");
       return;
     }
 
@@ -367,9 +372,28 @@ export default function ReserveForm({
         {step === "category" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a table
+              Choose an area
             </legend>
             <div className="mt-3 flex flex-col gap-2">
+              <div className="border border-white/10 bg-black/20 p-4 text-white/45">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="font-heading text-sm tracking-[0.16em] text-white/70 sm:text-base">
+                    {RESID_AREA.name}
+                  </span>
+                  <span className="font-heading text-[10px] tracking-[0.18em] text-white/40">
+                    Invite only
+                  </span>
+                </span>
+                <span className="mt-2 block text-sm text-white/45">
+                  {RESID_AREA.furniture} · {RESID_AREA.tagline}
+                </span>
+                <span className="mt-3 block font-heading text-[11px] tracking-[0.18em] text-white/55">
+                  Minimum spend {formatIdr(RESID_AREA.minSpendIdr)}
+                </span>
+                <span className="mt-2 block text-xs leading-relaxed text-white/35">
+                  Resid is not open for online booking yet.
+                </span>
+              </div>
               {TABLE_PACKAGES.map((pack) => {
                 const selected = packageId === pack.id;
                 return (
@@ -407,10 +431,13 @@ export default function ReserveForm({
                         {formatIdr(pack.priceIdr)}
                       </span>
                     </span>
-                    <span className="mt-2 block text-sm text-white/55">
-                      Seating capacity: {pack.seats} pax
+                    <span className="mt-2 block text-sm text-white/70">
+                      {pack.furniture} · {pack.seats} pax · {pack.range}
                     </span>
-                    <span className="mt-1 block text-sm text-white/55">
+                    <span className="mt-1 block text-sm text-white/50">
+                      {pack.tagline}
+                    </span>
+                    <span className="mt-2 block text-sm text-white/55">
                       {pack.tickets} event tickets · {pack.reservation}
                     </span>
                     <span className="mt-3 block font-heading text-[11px] tracking-[0.18em] text-white">
@@ -425,8 +452,11 @@ export default function ReserveForm({
               })}
             </div>
             <ul className="mt-4 space-y-1 text-xs leading-relaxed text-white/40">
-              <li>Paid separately at the venue</li>
-              <li>Minimum spend is not included in the booking fee</li>
+              <li>
+                The booking fee is the Phase 1 reservation ticket and holds the
+                table
+              </li>
+              <li>Minimum spend is paid separately at the venue</li>
               <li>Booking fee is non-deductible from minimum spend</li>
             </ul>
           </fieldset>
@@ -435,11 +465,11 @@ export default function ReserveForm({
         {step === "seat" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a seat
+              Choose a table
             </legend>
             <p className="mt-3 text-sm text-white/55">
-              Tap a marker on the floor plan, or pick from the list. Paying holds
-              this seat for 60 minutes.
+              Tap a table on the floor plan, or pick from the list. Paying holds
+              this table for 60 minutes.
             </p>
             <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {categorySeats.map((item) => {
@@ -498,10 +528,10 @@ export default function ReserveForm({
               {NIGHTS.find((night) => night.id === nightId)?.label}
             </p>
             <p>
-              <span className="text-white/40">Category</span> {table.name}
+              <span className="text-white/40">Area</span> {table.name}
             </p>
             <p>
-              <span className="text-white/40">Seat</span> {seat?.label}
+              <span className="text-white/40">Table</span> {seat?.label}
             </p>
             <p>
               <span className="text-white/40">Booking fee</span>{" "}
@@ -559,10 +589,10 @@ export default function ReserveForm({
 
         {step === "pay" ? (
           <p className="text-xs leading-relaxed text-white/40">
-            Pay the booking fee within 60 minutes to keep this seat. The hold and
-            the payment expire together. Minimum spend is paid at the venue and
-            is not included in the booking fee. We send the invoice by email and
-            WhatsApp.
+            Pay the booking fee within 60 minutes to keep this table. The hold
+            and the payment expire together. Minimum spend is paid at the venue
+            and is not included in the booking fee. We send the invoice by email
+            and WhatsApp.
           </p>
         ) : null}
       </form>

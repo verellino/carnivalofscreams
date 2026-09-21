@@ -1,6 +1,6 @@
 "use client";
 
-import { MAP_VIEWBOX, SOFAS, type SofaSeat } from "@/lib/seats";
+import { MAP_VIEWBOX, SEATS, type VenueSeat } from "@/lib/seats";
 import type { TablePackageId } from "@/lib/tables";
 
 type Mode = "preview" | "pick";
@@ -10,28 +10,32 @@ type Props = {
   packageId?: TablePackageId;
   selectedSeatId?: string | null;
   takenSeatIds?: string[];
-  onSelect?: (seat: SofaSeat) => void;
+  onSelect?: (seat: VenueSeat) => void;
 };
 
 const PACKAGE_STYLE: Record<
   TablePackageId,
   { fill: string; stroke: string }
 > = {
-  sofa: {
-    fill: "rgba(56,189,248,0.22)",
+  luxer: {
+    fill: "rgba(192,132,252,0.28)",
+    stroke: "rgba(216,180,254,0.95)",
+  },
+  etius: {
+    fill: "rgba(56,189,248,0.28)",
     stroke: "rgba(125,211,252,0.95)",
   },
-  premium: {
-    fill: "rgba(250,204,21,0.18)",
-    stroke: "rgba(250,204,21,0.9)",
+  tivex: {
+    fill: "rgba(244,114,182,0.28)",
+    stroke: "rgba(249,168,212,0.95)",
   },
-  regular: {
-    fill: "rgba(255,255,255,0.12)",
-    stroke: "rgba(255,255,255,0.85)",
+  perio: {
+    fill: "rgba(250,204,21,0.22)",
+    stroke: "rgba(253,224,71,0.95)",
   },
-  communal: {
-    fill: "rgba(244,114,182,0.2)",
-    stroke: "rgba(244,114,182,0.9)",
+  onomy: {
+    fill: "rgba(34,211,238,0.28)",
+    stroke: "rgba(103,232,249,0.95)",
   },
 };
 
@@ -58,56 +62,66 @@ export default function SeatMap({
           height={MAP_VIEWBOX.height}
         />
 
-        {SOFAS.map((seat) => {
+        {SEATS.map((seat) => {
           const inCategory = !packageId || seat.packageId === packageId;
           const isTaken = taken.has(seat.id);
           const isSelected = selectedSeatId === seat.id;
           const pickable = mode === "pick" && inCategory && !isTaken;
           const dimmed = packageId ? !inCategory : false;
+          const showPack = inCategory && (mode === "pick" || Boolean(packageId));
           const pack = PACKAGE_STYLE[seat.packageId];
           const fill = isSelected
-            ? "rgba(255,255,255,0.28)"
+            ? "rgba(255,255,255,0.38)"
             : isTaken
-              ? "rgba(196,69,58,0.35)"
-              : inCategory
+              ? "rgba(196,69,58,0.45)"
+              : showPack
                 ? pack.fill
                 : "transparent";
           const stroke = isSelected
             ? "rgba(255,255,255,0.95)"
             : isTaken
-              ? "rgba(196,69,58,0.9)"
-              : inCategory
+              ? "rgba(196,69,58,0.95)"
+              : showPack
                 ? pack.stroke
-                : "rgba(255,255,255,0.2)";
+                : "transparent";
 
           return (
             <g
               key={seat.id}
-              opacity={dimmed ? 0.22 : 1}
+              opacity={dimmed ? 0.16 : 1}
+              transform={`translate(${seat.x} ${seat.y}) rotate(${seat.rotate})`}
               style={{ cursor: pickable ? "pointer" : "default" }}
+              pointerEvents={pickable || isSelected ? "auto" : "none"}
               onClick={() => {
                 if (pickable) onSelect?.(seat);
               }}
             >
-              <circle
-                cx={seat.x}
-                cy={seat.y}
-                r="26"
+              <title>
+                {isTaken ? `${seat.short} held` : seat.label}
+              </title>
+              <rect
+                x={-seat.w / 2}
+                y={-seat.h / 2}
+                width={seat.w}
+                height={seat.h}
+                rx="10"
                 fill={fill}
                 stroke={stroke}
                 strokeWidth={isSelected || isTaken ? 4 : 3}
               />
-              <text
-                x={seat.x}
-                y={seat.y + 6}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontSize="16"
-                letterSpacing="1"
-                fontFamily="var(--font-angie), Helvetica, sans-serif"
-              >
-                {seat.short}
-              </text>
+              {mode === "pick" && packageId && inCategory ? (
+                <text
+                  y="6"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="15"
+                  letterSpacing="1"
+                  fontFamily="var(--font-angie), Helvetica, sans-serif"
+                  transform={`rotate(${-seat.rotate})`}
+                >
+                  {seat.short}
+                </text>
+              ) : null}
             </g>
           );
         })}

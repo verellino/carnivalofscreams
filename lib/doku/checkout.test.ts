@@ -10,7 +10,7 @@ function validRequest(
 ): DokuCheckoutRequest {
   return {
     order: {
-      amount: 200000,
+      amount: 300000,
       invoice_number: "COS-30-REG-abc123defg",
       currency: "IDR",
       callback_url: "https://example.com/reserve/confirmed",
@@ -19,7 +19,7 @@ function validRequest(
       auto_redirect: true,
       recover_abandoned_cart: false,
       line_items: [
-        { id: "regular", name: "Regular 30 Oct - Regular 1", quantity: 1, price: 200000 },
+        { id: "onomy", name: "Onomy Area 30 Oct - Onomy 1", quantity: 1, price: 300000 },
       ],
     },
     payment: {
@@ -88,6 +88,6 @@ test("rejects invalid invoice, currency, email, and phone", () => {
 });
 
 test("strips non-ASCII characters from line item names", () => {
-  assert.equal(asciiItemName("Premium Sofa · Daybed 1"), "Premium Sofa - Daybed 1");
-  assert.equal(asciiItemName("Communal 30 Oct - Communal 3"), "Communal 30 Oct - Communal 3");
+  assert.equal(asciiItemName("Luxer Area · Luxer 1"), "Luxer Area - Luxer 1");
+  assert.equal(asciiItemName("Tivex Area 30 Oct - Tivex 3"), "Tivex Area 30 Oct - Tivex 3");
 });

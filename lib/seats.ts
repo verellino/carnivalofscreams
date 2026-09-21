@@ -1,102 +1,145 @@
 import type { TablePackageId } from "./tables";
 
-export type SofaSeat = {
+export type VenueSeat = {
   id: string;
   packageId: TablePackageId;
   label: string;
   short: string;
   x: number;
   y: number;
+  rotate: number;
+  w: number;
+  h: number;
 };
+
+type SeatPoint = {
+  n: number;
+  x: number;
+  y: number;
+  rotate?: number;
+  w?: number;
+  h?: number;
+};
+
+/** COS26 isometric floor plan, matching public/images/venue-layout.webp */
+export const MAP_VIEWBOX = { width: 2400, height: 1742 };
+
+const SIZE: Record<TablePackageId, { w: number; h: number }> = {
+  luxer: { w: 34, h: 54 },
+  etius: { w: 92, h: 70 },
+  tivex: { w: 72, h: 44 },
+  perio: { w: 64, h: 50 },
+  onomy: { w: 44, h: 44 },
+};
+
+function pct(x: number, y: number) {
+  return {
+    x: Math.round((x / 100) * MAP_VIEWBOX.width),
+    y: Math.round((y / 100) * MAP_VIEWBOX.height),
+  };
+}
 
 function seats(
   packageId: TablePackageId,
   idPrefix: string,
   prefix: string,
   name: string,
-  points: Array<[number, number]>,
-): SofaSeat[] {
-  return points.map(([x, y], index) => {
-    const n = index + 1;
+  points: SeatPoint[],
+): VenueSeat[] {
+  const size = SIZE[packageId];
+  return points.map((point) => {
+    const { x, y } = pct(point.x, point.y);
     return {
-      id: `${idPrefix}-${n}`,
+      id: `${idPrefix}-${point.n}`,
       packageId,
-      label: `${name} ${n}`,
-      short: `${prefix}${n}`,
+      label: `${name} ${point.n}`,
+      short: `${prefix}${point.n}`,
       x,
       y,
+      rotate: point.rotate ?? 0,
+      w: point.w ?? size.w,
+      h: point.h ?? size.h,
     };
   });
 }
 
-export const MAP_VIEWBOX = { width: 2200, height: 1746 };
-
-export const SOFAS: SofaSeat[] = [
-  ...seats("sofa", "daybed", "D", "Daybed", [
-    [1006, 438],
-    [1250, 483],
-    [1467, 533],
-    [1723, 594],
+export const SEATS: VenueSeat[] = [
+  ...seats("etius", "etius", "E", "Etius", [
+    { n: 1, x: 46.6, y: 31.8, rotate: 8 },
+    { n: 2, x: 57.2, y: 33.6, rotate: 8 },
+    { n: 3, x: 67.2, y: 35.6, rotate: 8 },
+    { n: 4, x: 76.4, y: 37.6, rotate: 8 },
   ]),
-  ...seats("sofa", "sofa", "S", "Sofa", [
-    [557, 626],
-    [557, 712],
-    [558, 793],
-    [558, 877],
-    [686, 606],
-    [686, 702],
-    [685, 802],
-    [608, 976],
-    [655, 1045],
-    [713, 1121],
-    [743, 930],
-    [805, 1000],
-    [758, 1106],
-    [1113, 972],
-    [1194, 995],
-    [1272, 1015],
-    [1350, 1032],
-    [877, 1198],
-    [956, 1198],
-    [1037, 1198],
-    [1116, 1197],
-    [1201, 1198],
-    [1283, 1197],
-    [1647, 783],
-    [1586, 840],
-    [1526, 900],
-    [1466, 951],
+  ...seats("luxer", "luxer", "L", "Luxer", [
+    { n: 1, x: 35.4, y: 38.8 },
+    { n: 2, x: 35.4, y: 42.4 },
+    { n: 3, x: 35.6, y: 46.0 },
+    { n: 4, x: 38.4, y: 50.6, rotate: -38 },
+    { n: 5, x: 40.8, y: 53.4, rotate: -38 },
+    { n: 6, x: 51.2, y: 52.2, rotate: 90 },
+    { n: 7, x: 55.0, y: 52.6, rotate: 90 },
+    { n: 8, x: 58.6, y: 53.0, rotate: 90 },
+    { n: 9, x: 65.4, y: 51.4, rotate: 32 },
+    { n: 10, x: 68.4, y: 49.6, rotate: 32 },
+    { n: 11, x: 71.4, y: 47.8, rotate: 32 },
+    { n: 12, x: 74.4, y: 46.0, rotate: 32 },
+    { n: 13, x: 62.2, y: 62.6, rotate: 90 },
+    { n: 14, x: 58.8, y: 62.6, rotate: 90 },
+    { n: 15, x: 55.0, y: 62.6, rotate: 90 },
+    { n: 16, x: 51.0, y: 62.6, rotate: 90 },
+    { n: 17, x: 47.0, y: 62.6, rotate: 90 },
+    { n: 18, x: 43.0, y: 62.6, rotate: 90 },
+    { n: 19, x: 44.2, y: 59.2, rotate: -28 },
+    { n: 20, x: 41.0, y: 57.6, rotate: -28 },
+    { n: 21, x: 36.0, y: 55.8, rotate: -38 },
+    { n: 22, x: 33.0, y: 53.6, rotate: -38 },
+    { n: 23, x: 30.4, y: 49.4 },
+    { n: 24, x: 30.3, y: 45.8 },
+    { n: 25, x: 30.2, y: 42.2 },
+    { n: 26, x: 30.2, y: 38.6 },
   ]),
-  ...seats("premium", "premium", "P", "Premium", [
-    [896, 1305],
-    [995, 1305],
-    [1096, 1305],
-    [1193, 1305],
+  ...seats("tivex", "tivex", "T", "Tivex", [
+    { n: 1, x: 32.8, y: 54.8, rotate: -30 },
+    { n: 2, x: 37.0, y: 56.2, rotate: -30 },
+    { n: 3, x: 40.8, y: 59.2, rotate: -30 },
+    { n: 4, x: 29.4, y: 58.4, rotate: -30 },
+    { n: 5, x: 33.6, y: 60.0, rotate: -30 },
+    { n: 6, x: 37.4, y: 61.8, rotate: -30 },
+    { n: 7, x: 40.8, y: 64.4, rotate: -30 },
+    { n: 8, x: 45.8, y: 65.8, rotate: -30 },
+    { n: 9, x: 25.6, y: 62.2, rotate: -30 },
+    { n: 10, x: 28.4, y: 64.4, rotate: -30 },
+    { n: 11, x: 31.8, y: 67.0, rotate: -30 },
+    { n: 12, x: 35.0, y: 69.4, rotate: -30 },
+    { n: 13, x: 37.8, y: 71.8, rotate: -30 },
+    { n: 14, x: 45.4, y: 67.6 },
+    { n: 15, x: 50.0, y: 67.6 },
+    { n: 16, x: 54.6, y: 67.6 },
+    { n: 17, x: 59.2, y: 67.6 },
   ]),
-  ...seats("regular", "regular", "R", "Regular", [
-    [883, 1395],
-    [957, 1395],
-    [1032, 1393],
-    [1566, 1091],
-    [1629, 1149],
-    [1520, 1200],
-    [1685, 1296],
-    [1633, 1344],
-    [1433, 1434],
-    [1517, 1428],
+  ...seats("perio", "perio", "P", "Perio", [
+    { n: 1, x: 57.6, y: 73.2, w: 52, h: 58 },
+    { n: 2, x: 66.6, y: 68.0, rotate: 8, w: 72, h: 48 },
+    { n: 3, x: 74.8, y: 66.2, rotate: 18, w: 72, h: 52 },
   ]),
-  ...seats("communal", "communal", "C", "Communal", [
-    [1142, 1378],
-    [1250, 1406],
-    [1476, 1340],
-    [1593, 1262],
+  ...seats("onomy", "onomy", "O", "Onomy", [
+    { n: 1, x: 44.8, y: 73.2 },
+    { n: 2, x: 49.2, y: 73.2 },
+    { n: 3, x: 53.6, y: 73.2 },
+    { n: 4, x: 66.8, y: 73.0 },
+    { n: 5, x: 71.0, y: 72.8 },
+    { n: 6, x: 74.8, y: 69.6 },
+    { n: 7, x: 78.4, y: 67.2 },
+    { n: 8, x: 69.8, y: 63.0 },
+    { n: 9, x: 73.2, y: 60.2 },
+    { n: 10, x: 74.6, y: 63.0 },
   ]),
 ];
 
 export function getSeat(id: string) {
-  return SOFAS.find((seat) => seat.id === id);
+  return SEATS.find((seat) => seat.id === id);
 }
 
 export function seatsForPackage(packageId: TablePackageId) {
-  return SOFAS.filter((seat) => seat.packageId === packageId);
+  return SEATS.filter((seat) => seat.packageId === packageId);
 }

@@ -16,11 +16,13 @@ type Props = {
 export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   const [preview, setPreview] = useState<ReservePreview>({
     step: "identity",
-    packageId: "sofa",
+    packageId: "luxer",
     nightId: "oct-30",
     seatId: null,
   });
-  const [mapSeatId, setMapSeatId] = useState<string | null>(null);
+  const [mapPick, setMapPick] = useState<{ id: string; nonce: number } | null>(
+    null,
+  );
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
 
   const onPreviewChange = useCallback((next: ReservePreview) => {
@@ -50,39 +52,51 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
           Hold a table for the night
         </p>
         <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
-          Enter your details, pick a night, a table, and the seat on the floor
-          plan, then pay the booking fee through DOKU. That locks the seat for
-          60 minutes. Minimum spend is paid at the venue. We send the invoice
-          by email and WhatsApp.
+          Enter your details, pick a night, an area, and a table on the COS26
+          floor plan, then pay the booking fee through DOKU. That locks the
+          table for 60 minutes. Minimum spend is paid at the venue. We send the
+          invoice by email and WhatsApp.
         </p>
         <div className="mt-12">
           <SeatMap
-            mode={preview.step === "seat" ? "pick" : "preview"}
+            mode={
+              preview.step === "seat" || preview.step === "category"
+                ? "pick"
+                : "preview"
+            }
             packageId={
-              preview.step === "identity" || preview.step === "night"
+              preview.step === "identity" ||
+              preview.step === "night" ||
+              preview.step === "category"
                 ? undefined
                 : preview.packageId
             }
             selectedSeatId={preview.seatId}
             takenSeatIds={takenSeatIds}
-            onSelect={(seat) => setMapSeatId(seat.id)}
+            onSelect={(seat) =>
+              setMapPick({ id: seat.id, nonce: Date.now() })
+            }
           />
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-heading text-[10px] tracking-[0.18em] text-white/45">
             <li className="inline-flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-violet-300" />
+              Luxer sofa
+            </li>
+            <li className="inline-flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-sky-300" />
-              Sofa & daybed
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-300" />
-              Premium
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white" />
-              Regular
+              Etius daybed
             </li>
             <li className="inline-flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-pink-300" />
-              Communal
+              Tivex long table
+            </li>
+            <li className="inline-flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-300" />
+              Perio long table
+            </li>
+            <li className="inline-flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-cyan-300" />
+              Onomy table
             </li>
           </ul>
         </div>
@@ -93,7 +107,7 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
           enabled={enabled}
           checkoutJsUrl={checkoutJsUrl}
           takenSeatIds={takenSeatIds}
-          mapSeatId={mapSeatId}
+          mapPick={mapPick}
           onPreviewChange={onPreviewChange}
         />
       </div>

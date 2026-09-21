@@ -25,7 +25,7 @@ export default function SeatPicker({
 
   function onConfirm() {
     if (!selectedSeatId) {
-      setError("Pick a seat in the category you paid for.");
+          setError("Pick a table in the area you paid for.");
       return;
     }
 
@@ -66,7 +66,7 @@ export default function SeatPicker({
         </p>
       ) : (
         <p className="mt-6 text-sm text-white/45">
-          Only seats in your paid category can be chosen.
+          Only tables in your paid area can be chosen.
         </p>
       )}
 
@@ -76,7 +76,7 @@ export default function SeatPicker({
         onClick={onConfirm}
         className="btn-press mt-8 inline-flex items-center justify-center border border-white/80 bg-white px-8 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black"
       >
-        {pending ? "Holding seat…" : "Confirm seat"}
+        {pending ? "Holding table…" : "Confirm table"}
       </button>
     </div>
   );

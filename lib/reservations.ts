@@ -369,7 +369,7 @@ export async function claimReservationSeat(orderId: string, seatId: string) {
 
   const seat = getSeat(seatId);
   if (!seat || seat.packageId !== reservation.packageId) {
-    throw new Error("That seat is not in the category you paid for.");
+    throw new Error("That table is not in the area you paid for.");
   }
 
   if (reservation.seatId) {
@@ -412,12 +412,12 @@ export async function claimReservationSeat(orderId: string, seatId: string) {
 
     const row = rows[0];
     if (!row) {
-      throw new Error("That seat was just taken. Pick another.");
+      throw new Error("That table was just taken. Pick another.");
     }
     return mapReservation(row);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new Error("That seat was just taken. Pick another.");
+      throw new Error("That table was just taken. Pick another.");
     }
     throw error;
   }
