@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
 import { getLineup } from "@/lib/lineup";
-import { getSeat, SEATS } from "@/lib/seats";
+import { getSeat, SEATS, seatsForPackage } from "@/lib/seats";
 import {
   formatIdr,
   NIGHTS,
@@ -29,8 +29,6 @@ type Props = {
   enabled: boolean;
   checkoutJsUrl: string;
   takenSeatIds: string[];
-  mapPick?: { id: string; nonce: number } | null;
-  dense?: boolean;
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
@@ -65,8 +63,6 @@ export default function ReserveForm({
   enabled,
   checkoutJsUrl,
   takenSeatIds,
-  mapPick,
-  dense = false,
   onPreviewChange,
 }: Props) {
   const [step, setStep] = useState<ReserveStep>("identity");
@@ -81,7 +77,6 @@ export default function ReserveForm({
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
-  const [appliedMapNonce, setAppliedMapNonce] = useState(0);
 
   const table = packageId
     ? TABLE_PACKAGES.find((pack) => pack.id === packageId)
@@ -96,22 +91,6 @@ export default function ReserveForm({
   useEffect(() => {
     onPreviewChange?.({ step, packageId, nightId, seatId });
   }, [step, packageId, nightId, seatId, onPreviewChange]);
-
-  if (mapPick && mapPick.nonce !== appliedMapNonce) {
-    const mapped = getSeat(mapPick.id);
-    if (
-      mapped &&
-      step === "seat" &&
-      !takenSeatIds.includes(mapped.id)
-    ) {
-      setAppliedMapNonce(mapPick.nonce);
-      if (packageId !== mapped.packageId) setPackageId(mapped.packageId);
-      if (seatId !== mapped.id) setSeatId(mapped.id);
-      setError(null);
-    } else {
-      setAppliedMapNonce(mapPick.nonce);
-    }
-  }
 
   function logCheckoutCallback(event: string, payload: unknown) {
     void fetch("/api/doku/checkout-callback", {
@@ -164,7 +143,7 @@ export default function ReserveForm({
         setError(
           availableSeats.length === 0
             ? "Every table is held for this night. Try the other night."
-            : "Tap a table on the floor plan.",
+            : "Please pick a table.",
         );
         return;
       }
@@ -187,7 +166,7 @@ export default function ReserveForm({
     }
 
     if (!seatId || !packageId) {
-      setError("Tap a table on the floor plan.");
+      setError("Please pick a table.");
       return;
     }
 
@@ -240,7 +219,7 @@ export default function ReserveForm({
         />
       ) : null}
 
-      <form onSubmit={onSubmit} className={`flex flex-col ${dense ? "gap-4" : "gap-6"}`}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-6">
         <ol className="grid grid-cols-4 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
@@ -377,47 +356,68 @@ export default function ReserveForm({
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
               Choose a table
             </legend>
-            {seat && table ? (
-              <div className="mt-3 border border-white/80 bg-white/10 px-4 py-3">
-                <p className="font-heading text-lg tracking-[0.16em] text-white">
-                  {seat.short}
-                </p>
-                <p className="mt-1 text-sm text-white/70">
-                  {table.name} · {table.furniture} · {table.seats} pax
-                </p>
-                <p className="mt-2 font-heading text-sm tracking-[0.12em] text-white">
-                  {formatIdr(table.priceIdr)}
-                </p>
-                <p className="mt-1 text-sm text-white/50">
-                  {table.tickets} tickets included · min. spend{" "}
-                  {formatIdr(table.minSpendIdr)}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm leading-relaxed text-white/65">
-                Pinch to zoom, then tap the printed table number. The area and
-                price come from that table.
-              </p>
-            )}
-            <ul className="mt-5 hidden space-y-1.5 text-xs leading-relaxed text-white/45 lg:block">
-              {TABLE_PACKAGES.map((pack) => (
-                <li
-                  key={pack.id}
-                  className="flex items-baseline justify-between gap-3"
-                >
-                  <span>
-                    {pack.name.replace(" Area", "")} {pack.range}
-                  </span>
-                  <span className="shrink-0 text-white/65">
-                    {formatIdr(pack.priceIdr)}
-                  </span>
-                </li>
-              ))}
-              <li className="flex items-baseline justify-between gap-3">
-                <span>{RESID_AREA.name.replace(" Area", "")}</span>
-                <span className="shrink-0">Invite only</span>
-              </li>
-            </ul>
+            <p className="mt-3 text-sm leading-relaxed text-white/65">
+              Pick the number printed on the floor plan. Resid is invite-only.
+            </p>
+            <div className="mt-4 flex flex-col gap-5">
+              {TABLE_PACKAGES.map((pack) => {
+                const packSeats = seatsForPackage(pack.id);
+                return (
+                  <div key={pack.id}>
+                    <p className="flex items-baseline justify-between gap-3">
+                      <span className="font-heading text-sm tracking-[0.16em] text-white">
+                        {pack.name.replace(" Area", "")}
+                      </span>
+                      <span className="font-heading text-sm tracking-[0.12em] text-white">
+                        {formatIdr(pack.priceIdr)}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs text-white/45">
+                      {pack.furniture} · {pack.seats} pax · {pack.tickets}{" "}
+                      tickets · min. {formatIdr(pack.minSpendIdr)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {packSeats.map((item) => {
+                        const taken = takenSeatIds.includes(item.id);
+                        const selected = seatId === item.id;
+                        return (
+                          <label
+                            key={item.id}
+                            className={`min-w-11 border px-2 py-2 text-center transition-colors ${
+                              taken
+                                ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                                : selected
+                                  ? "cursor-pointer border-white bg-white text-black"
+                                  : "cursor-pointer border-white/15 bg-black/30 text-white hover:border-white/50"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="seat"
+                              value={item.id}
+                              checked={selected}
+                              disabled={taken}
+                              onChange={() => {
+                                setSeatId(item.id);
+                                setPackageId(pack.id);
+                                setError(null);
+                              }}
+                              className="sr-only"
+                            />
+                            <span className="block font-heading text-[11px] tracking-[0.12em]">
+                              {item.short}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-xs text-white/40">
+              {RESID_AREA.name} is invite-only and is not in this booking.
+            </p>
           </fieldset>
         ) : null}
 

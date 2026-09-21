@@ -22,16 +22,12 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
     nightId: "oct-30",
     seatId: null,
   });
-  const [mapPick, setMapPick] = useState<{ id: string; nonce: number } | null>(
-    null,
-  );
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
 
   const selectedSeat = preview.seatId ? getSeat(preview.seatId) : undefined;
   const selectedArea = preview.packageId
     ? getTablePackage(preview.packageId)
     : undefined;
-  const picking = preview.step === "seat";
 
   const onPreviewChange = useCallback((next: ReservePreview) => {
     setPreview(next);
@@ -48,8 +44,8 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   }, [preview.nightId, preview.step]);
 
   return (
-    <div className="mx-auto w-full max-w-[92rem] px-4 pb-10 pt-20 sm:px-6 sm:pt-24 lg:px-8 lg:pb-16">
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-3 lg:mb-5">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-heading text-[11px] tracking-[0.42em] text-white/55">
             Table reservation
@@ -66,48 +62,24 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
         ) : null}
       </header>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
-        <section
-          className={`min-w-0 flex-1 ${picking ? "order-1" : "order-2 lg:order-1"}`}
-        >
-          <SeatMap
-            mode={picking ? "pick" : "preview"}
-            selectedSeatId={preview.seatId}
-            takenSeatIds={takenSeatIds}
-            className={
-              picking
-                ? "h-[min(56svh,30rem)] lg:h-auto"
-                : "h-[min(36svh,20rem)] lg:h-auto"
-            }
-            onSelect={(seat) =>
-              setMapPick({ id: seat.id, nonce: Date.now() })
-            }
-          />
-          <p className="mt-3 hidden text-sm text-white/45 lg:block">
-            {picking
-              ? "Pinch or use + to zoom, then tap a labeled table."
-              : "Floor plan for Carnaval of Screams 2026."}
-          </p>
-        </section>
-
-        <aside
-          className={
-            picking
-              ? "order-2 shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto"
-              : "order-1 lg:sticky lg:top-28 lg:order-2 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto"
-          }
-        >
-          <div className="pass-panel p-4 sm:p-5 lg:p-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <aside className="w-full shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[28rem] lg:overflow-y-auto">
+          <div className="pass-panel p-5 sm:p-6">
             <ReserveForm
               enabled={enabled}
               checkoutJsUrl={checkoutJsUrl}
               takenSeatIds={takenSeatIds}
-              mapPick={mapPick}
-              dense={picking}
               onPreviewChange={onPreviewChange}
             />
           </div>
         </aside>
+
+        <section className="min-w-0 flex-1">
+          <SeatMap />
+          <p className="mt-3 text-sm text-white/45">
+            Floor plan for reference. Pick a table number in the form.
+          </p>
+        </section>
       </div>
     </div>
   );

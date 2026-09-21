@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { selectReservationSeat } from "@/app/actions/reserve";
 import SeatMap from "@/components/SeatMap";
+import { seatsForPackage } from "@/lib/seats";
 import type { TablePackageId } from "@/lib/tables";
 
 type Props = {
@@ -22,6 +23,7 @@ export default function SeatPicker({
   const [pending, startTransition] = useTransition();
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const seats = seatsForPackage(packageId);
 
   function onConfirm() {
     if (!selectedSeatId) {
@@ -45,16 +47,34 @@ export default function SeatPicker({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
-      <SeatMap
-        mode="pick"
-        packageId={packageId}
-        selectedSeatId={selectedSeatId}
-        takenSeatIds={takenSeatIds}
-        onSelect={(seat) => {
-          setSelectedSeatId(seat.id);
-          setError(null);
-        }}
-      />
+      <div className="mb-8 flex w-full max-w-xl flex-wrap justify-center gap-1.5">
+        {seats.map((item) => {
+          const taken = takenSeatIds.includes(item.id);
+          const selected = selectedSeatId === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              disabled={taken}
+              onClick={() => {
+                setSelectedSeatId(item.id);
+                setError(null);
+              }}
+              className={`min-w-11 border px-2 py-2 font-heading text-[11px] tracking-[0.12em] transition-colors ${
+                taken
+                  ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                  : selected
+                    ? "border-white bg-white text-black"
+                    : "border-white/15 bg-black/30 text-white hover:border-white/50"
+              }`}
+            >
+              {item.short}
+            </button>
+          );
+        })}
+      </div>
+
+      <SeatMap />
 
       {error ? (
         <p
@@ -66,7 +86,8 @@ export default function SeatPicker({
         </p>
       ) : (
         <p className="mt-6 text-sm text-white/45">
-          Only tables in your paid area can be chosen.
+          Only tables in your paid area can be chosen. Use the floor plan as a
+          reference.
         </p>
       )}
 
