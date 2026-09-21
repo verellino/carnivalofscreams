@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -94,6 +95,7 @@ export default function SeatMap({
   const selected = selectedSeatId
     ? SEATS.find((seat) => seat.id === selectedSeatId)
     : undefined;
+  const primed = useRef(false);
 
   function toSvg(clientX: number, clientY: number) {
     const svg = svgRef.current;
@@ -130,6 +132,29 @@ export default function SeatMap({
     setScale(1);
     setPan({ x: 0, y: 0 });
   }
+
+  useLayoutEffect(() => {
+    if (primed.current) return;
+    const frame = frameRef.current;
+    const svg = svgRef.current;
+    if (!frame || !svg) return;
+    const rect = frame.getBoundingClientRect();
+    if (rect.width === 0 || rect.width >= 768) {
+      primed.current = true;
+      return;
+    }
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    primed.current = true;
+    const focus =
+      SEATS.find((seat) => seat.id === "tivex-6") ??
+      SEATS[Math.floor(SEATS.length / 2)];
+    const point = svg.createSVGPoint();
+    point.x = focus.x;
+    point.y = focus.y;
+    const screen = point.matrixTransform(ctm);
+    zoomAt(screen.x, screen.y, 2.3);
+  });
 
   function pickAt(clientX: number, clientY: number) {
     if (mode !== "pick") return;

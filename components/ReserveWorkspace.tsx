@@ -76,8 +76,8 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
             takenSeatIds={takenSeatIds}
             className={
               picking
-                ? "h-[min(64svh,34rem)] lg:h-auto"
-                : "h-[min(42svh,22rem)] lg:h-auto"
+                ? "h-[min(56svh,30rem)] lg:h-auto"
+                : "h-[min(36svh,20rem)] lg:h-auto"
             }
             onSelect={(seat) =>
               setMapPick({ id: seat.id, nonce: Date.now() })
@@ -93,7 +93,7 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
         <aside
           className={
             picking
-              ? "order-2 sticky bottom-0 z-20 -mx-4 border-t border-white/10 bg-ink/95 px-4 py-3 backdrop-blur-md lg:static lg:top-28 lg:mx-0 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+              ? "order-2 shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto"
               : "order-1 lg:sticky lg:top-28 lg:order-2 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto"
           }
         >
