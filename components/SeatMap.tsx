@@ -17,7 +17,6 @@ type Props = {
   packageId?: TablePackageId;
   selectedSeatId?: string | null;
   takenSeatIds?: string[];
-  hint?: string;
   onSelect?: (seat: VenueSeat) => void;
 };
 
@@ -34,7 +33,6 @@ export default function SeatMap({
   packageId,
   selectedSeatId,
   takenSeatIds = [],
-  hint,
   onSelect,
 }: Props) {
   const taken = new Set(takenSeatIds);
@@ -65,10 +63,9 @@ export default function SeatMap({
           const isSelected = selectedSeatId === seat.id;
           const isHovered = hoveredId === seat.id;
           const pickable = mode === "pick" && inCategory && !isTaken;
-          const showRing =
-            isTaken || (pickable && isHovered && !isSelected);
-          const hitW = seat.w * 1.7;
-          const hitH = seat.h * 1.7;
+          const showRing = isTaken || isSelected || (pickable && isHovered);
+          const hitW = seat.w * 2;
+          const hitH = seat.h * 2;
 
           return (
             <g
@@ -114,14 +111,20 @@ export default function SeatMap({
                   height={seat.h}
                   rx="10"
                   fill={
-                    isTaken ? "rgba(196,69,58,0.28)" : "transparent"
+                    isTaken
+                      ? "rgba(196,69,58,0.28)"
+                      : isSelected
+                        ? "rgba(255,255,255,0.18)"
+                        : "transparent"
                   }
                   stroke={
                     isTaken
                       ? "rgba(248,113,113,0.95)"
-                      : HOVER_STROKE[seat.packageId]
+                      : isSelected
+                        ? "#fff"
+                        : HOVER_STROKE[seat.packageId]
                   }
-                  strokeWidth={isTaken ? 5 : 4}
+                  strokeWidth={isSelected || isTaken ? 6 : 5}
                   pointerEvents="none"
                 />
               ) : null}
@@ -130,15 +133,21 @@ export default function SeatMap({
         })}
 
         {selected ? (
-          <g transform={`translate(${selected.x} ${selected.y})`}>
-            <circle
-              r="34"
+          <g
+            transform={`translate(${selected.x} ${selected.y - selected.h / 2 - 36})`}
+          >
+            <rect
+              x="-46"
+              y="-22"
+              width="92"
+              height="44"
+              rx="22"
               fill="#fff"
               stroke="rgba(0,0,0,0.35)"
               strokeWidth="3"
             />
             <text
-              y="7"
+              y="8"
               textAnchor="middle"
               fill="#050308"
               fontSize="22"
@@ -151,11 +160,6 @@ export default function SeatMap({
           </g>
         ) : null}
       </svg>
-      {hint ? (
-        <p className="pointer-events-none absolute bottom-3 left-3 right-3 font-heading text-[10px] tracking-[0.22em] text-white/70 sm:text-[11px]">
-          {hint}
-        </p>
-      ) : null}
     </div>
   );
 }

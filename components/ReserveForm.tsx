@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
 import { getLineup } from "@/lib/lineup";
-import { getSeat, seatsForPackage } from "@/lib/seats";
+import { getSeat, SEATS } from "@/lib/seats";
 import {
   formatIdr,
   NIGHTS,
@@ -16,11 +16,11 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-export type ReserveStep = "identity" | "night" | "category" | "seat" | "pay";
+export type ReserveStep = "identity" | "night" | "seat" | "pay";
 
 export type ReservePreview = {
   step: ReserveStep;
-  packageId: TablePackageId;
+  packageId: TablePackageId | null;
   nightId: NightId;
   seatId: string | null;
 };
@@ -33,16 +33,8 @@ type Props = {
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
-const STEPS: ReserveStep[] = ["identity", "night", "category", "seat", "pay"];
-const STEP_LABELS = ["Details", "Day", "Area", "Table", "Pay"] as const;
-
-const AREA_DOT: Record<TablePackageId, string> = {
-  luxer: "bg-violet-300",
-  etius: "bg-sky-300",
-  tivex: "bg-pink-300",
-  perio: "bg-amber-300",
-  onomy: "bg-cyan-300",
-};
+const STEPS: ReserveStep[] = ["identity", "night", "seat", "pay"];
+const STEP_LABELS = ["Details", "Day", "Table", "Pay"] as const;
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -82,19 +74,20 @@ export default function ReserveForm({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nightId, setNightId] = useState<NightId>("oct-30");
-  const [packageId, setPackageId] = useState<TablePackageId>("luxer");
+  const [packageId, setPackageId] = useState<TablePackageId | null>(null);
   const [seatId, setSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
   const [appliedMapNonce, setAppliedMapNonce] = useState(0);
 
-  const table = TABLE_PACKAGES.find((pack) => pack.id === packageId)!;
+  const table = packageId
+    ? TABLE_PACKAGES.find((pack) => pack.id === packageId)
+    : undefined;
   const seat = seatId ? getSeat(seatId) : undefined;
   const busy = pending || paying;
   const stepIndex = STEPS.indexOf(step);
-  const categorySeats = seatsForPackage(packageId);
-  const availableSeats = categorySeats.filter(
+  const availableSeats = SEATS.filter(
     (item) => !takenSeatIds.includes(item.id),
   );
 
@@ -104,16 +97,17 @@ export default function ReserveForm({
 
   if (mapPick && mapPick.nonce !== appliedMapNonce) {
     const mapped = getSeat(mapPick.id);
-    if (!mapped || takenSeatIds.includes(mapped.id)) {
+    if (
+      mapped &&
+      step === "seat" &&
+      !takenSeatIds.includes(mapped.id)
+    ) {
       setAppliedMapNonce(mapPick.nonce);
+      if (packageId !== mapped.packageId) setPackageId(mapped.packageId);
+      if (seatId !== mapped.id) setSeatId(mapped.id);
+      setError(null);
     } else {
-      const sameArea = mapped.packageId === packageId;
-      if (step === "category" || sameArea) {
-        setAppliedMapNonce(mapPick.nonce);
-        if (!sameArea) setPackageId(mapped.packageId);
-        if (seatId !== mapped.id) setSeatId(mapped.id);
-        if (step === "category") setStep("seat");
-      }
+      setAppliedMapNonce(mapPick.nonce);
     }
   }
 
@@ -160,10 +154,6 @@ export default function ReserveForm({
       return;
     }
     if (step === "night") {
-      setStep("category");
-      return;
-    }
-    if (step === "category") {
       setStep("seat");
       return;
     }
@@ -171,8 +161,8 @@ export default function ReserveForm({
       if (!seatId || !availableSeats.some((item) => item.id === seatId)) {
         setError(
           availableSeats.length === 0
-            ? "Every table in this area is held. Try another area or night."
-            : "Please pick a table on the floor plan.",
+            ? "Every table is held for this night. Try the other night."
+            : "Tap a table on the floor plan.",
         );
         return;
       }
@@ -183,8 +173,7 @@ export default function ReserveForm({
   function goBack() {
     setError(null);
     if (step === "night") setStep("identity");
-    if (step === "category") setStep("night");
-    if (step === "seat") setStep("category");
+    if (step === "seat") setStep("night");
     if (step === "pay") setStep("seat");
   }
 
@@ -195,8 +184,8 @@ export default function ReserveForm({
       return;
     }
 
-    if (!seatId) {
-      setError("Please pick a table on the floor plan.");
+    if (!seatId || !packageId) {
+      setError("Tap a table on the floor plan.");
       return;
     }
 
@@ -237,6 +226,8 @@ export default function ReserveForm({
     });
   }
 
+  const night = NIGHTS.find((item) => item.id === nightId);
+
   return (
     <>
       {enabled && checkoutJsUrl ? (
@@ -248,7 +239,7 @@ export default function ReserveForm({
       ) : null}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
-        <ol className="grid grid-cols-5 gap-1 text-center">
+        <ol className="grid grid-cols-4 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
               key={item}
@@ -337,12 +328,12 @@ export default function ReserveForm({
               Choose a night
             </legend>
             <div className="mt-3 flex flex-col gap-2">
-              {NIGHTS.map((night) => {
-                const selected = nightId === night.id;
-                const lineup = getLineup(night.id);
+              {NIGHTS.map((item) => {
+                const selected = nightId === item.id;
+                const lineup = getLineup(item.id);
                 return (
                   <label
-                    key={night.id}
+                    key={item.id}
                     className={`cursor-pointer border p-4 text-left transition-colors ${
                       selected
                         ? "border-white/80 bg-white/10 text-white"
@@ -352,19 +343,20 @@ export default function ReserveForm({
                     <input
                       type="radio"
                       name="night"
-                      value={night.id}
+                      value={item.id}
                       checked={selected}
                       onChange={() => {
-                        setNightId(night.id);
+                        setNightId(item.id);
                         setSeatId(null);
+                        setPackageId(null);
                       }}
                       className="sr-only"
                     />
                     <span className="font-heading text-sm tracking-[0.16em] text-white">
-                      {night.day}
+                      {item.day}
                     </span>
                     <span className="mt-1 block text-sm text-white/70">
-                      {night.label}
+                      {item.label}
                     </span>
                     {lineup ? (
                       <span className="mt-2 block text-sm text-white/45">
@@ -378,126 +370,52 @@ export default function ReserveForm({
           </fieldset>
         ) : null}
 
-        {step === "category" ? (
-          <fieldset className="min-w-0">
-            <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose an area
-            </legend>
-            <p className="mt-3 text-sm text-white/55">
-              Pick an area, or tap a table on the map.
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              {TABLE_PACKAGES.map((pack) => {
-                const selected = packageId === pack.id;
-                return (
-                  <label
-                    key={pack.id}
-                    className={`cursor-pointer border p-4 transition-colors ${
-                      selected
-                        ? "border-white/80 bg-white/10"
-                        : "border-white/15 bg-black/30 hover:border-white/35"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="package"
-                      value={pack.id}
-                      checked={selected}
-                      onChange={() => {
-                        setPackageId(pack.id);
-                        setSeatId((current) => {
-                          const currentSeat = current
-                            ? getSeat(current)
-                            : undefined;
-                          return currentSeat?.packageId === pack.id
-                            ? current
-                            : null;
-                        });
-                      }}
-                      className="sr-only"
-                    />
-                    <span className="flex items-baseline justify-between gap-3">
-                      <span className="inline-flex items-center gap-2 font-heading text-sm tracking-[0.16em] text-white sm:text-base">
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full ${AREA_DOT[pack.id]}`}
-                          aria-hidden="true"
-                        />
-                        {pack.name}
-                      </span>
-                      <span className="font-heading text-sm tracking-[0.12em] text-white">
-                        {formatIdr(pack.priceIdr)}
-                      </span>
-                    </span>
-                    <span className="mt-2 block text-sm text-white/65">
-                      {pack.furniture} · {pack.seats} pax · {pack.range}
-                    </span>
-                    <span className="mt-1 block text-sm text-white/45">
-                      {pack.tickets} tickets included · min. spend{" "}
-                      {formatIdr(pack.minSpendIdr)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-xs leading-relaxed text-white/40">
-              Extra guests buy their own tickets. Minimum spend is paid at the
-              venue and is not deducted from this booking fee. {RESID_AREA.name}{" "}
-              is invite-only and is not in this booking.
-            </p>
-          </fieldset>
-        ) : null}
-
         {step === "seat" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              {table.name}
+              Choose a table
             </legend>
-            <p className="mt-3 text-sm text-white/55">
-              {table.furniture} · {table.range} · {table.seats} pax
-            </p>
-            {seat ? (
-              <p className="mt-4 border border-white/80 bg-white/10 px-4 py-3 font-heading text-sm tracking-[0.16em] text-white">
-                Table {seat.short}
-                <span className="mt-1 block font-sans text-sm font-normal normal-case tracking-normal text-white/55">
-                  {formatIdr(table.priceIdr)} · {table.tickets} tickets included
-                </span>
-              </p>
+            {seat && table ? (
+              <div className="mt-4 border border-white/80 bg-white/10 px-4 py-4">
+                <p className="font-heading text-lg tracking-[0.16em] text-white">
+                  {seat.short}
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  {table.name} · {table.furniture} · {table.seats} pax
+                </p>
+                <p className="mt-3 font-heading text-sm tracking-[0.12em] text-white">
+                  {formatIdr(table.priceIdr)}
+                </p>
+                <p className="mt-1 text-sm text-white/50">
+                  {table.tickets} tickets included · min. spend{" "}
+                  {formatIdr(table.minSpendIdr)}
+                </p>
+              </div>
             ) : (
-              <p className="mt-4 text-sm text-white/55">
-                Tap a table on the map. Numbers below are a backup.
+              <p className="mt-4 text-sm leading-relaxed text-white/65">
+                Tap a labeled table on the floor plan. The area and price come
+                from that table.
               </p>
             )}
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {categorySeats.map((item) => {
-                const taken = takenSeatIds.includes(item.id);
-                const selected = seatId === item.id;
-                return (
-                  <label
-                    key={item.id}
-                    className={`min-w-11 border px-2 py-2 text-center transition-colors ${
-                      taken
-                        ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
-                        : selected
-                          ? "cursor-pointer border-white bg-white text-black"
-                          : "cursor-pointer border-white/15 bg-black/30 text-white hover:border-white/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="seat"
-                      value={item.id}
-                      checked={selected}
-                      disabled={taken}
-                      onChange={() => setSeatId(item.id)}
-                      className="sr-only"
-                    />
-                    <span className="block font-heading text-[11px] tracking-[0.12em]">
-                      {item.short}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+            <ul className="mt-5 space-y-1.5 text-xs leading-relaxed text-white/45">
+              {TABLE_PACKAGES.map((pack) => (
+                <li
+                  key={pack.id}
+                  className="flex items-baseline justify-between gap-3"
+                >
+                  <span>
+                    {pack.name.replace(" Area", "")} {pack.range}
+                  </span>
+                  <span className="shrink-0 text-white/65">
+                    {formatIdr(pack.priceIdr)}
+                  </span>
+                </li>
+              ))}
+              <li className="flex items-baseline justify-between gap-3">
+                <span>{RESID_AREA.name.replace(" Area", "")}</span>
+                <span className="shrink-0">Invite only</span>
+              </li>
+            </ul>
           </fieldset>
         ) : null}
 
@@ -516,23 +434,20 @@ export default function ReserveForm({
               <span className="text-white/40">Email</span> {email}
             </p>
             <p>
-              <span className="text-white/40">Day</span>{" "}
-              {NIGHTS.find((night) => night.id === nightId)?.day} ·{" "}
-              {NIGHTS.find((night) => night.id === nightId)?.label}
+              <span className="text-white/40">Day</span> {night?.day} ·{" "}
+              {night?.label}
             </p>
             <p>
-              <span className="text-white/40">Area</span> {table.name}
-            </p>
-            <p>
-              <span className="text-white/40">Table</span> {seat?.label}
+              <span className="text-white/40">Table</span> {seat?.short}
+              {table ? ` · ${table.name}` : ""}
             </p>
             <p>
               <span className="text-white/40">Booking fee</span>{" "}
-              {formatIdr(table.priceIdr)}
+              {table ? formatIdr(table.priceIdr) : "—"}
             </p>
             <p>
               <span className="text-white/40">Minimum spend</span>{" "}
-              {formatIdr(table.minSpendIdr)} at the venue
+              {table ? `${formatIdr(table.minSpendIdr)} at the venue` : "—"}
             </p>
           </div>
         ) : null}
@@ -561,13 +476,17 @@ export default function ReserveForm({
 
           <button
             type="submit"
-            disabled={busy || (step === "pay" && !enabled)}
+            disabled={
+              busy ||
+              (step === "pay" && !enabled) ||
+              (step === "seat" && !seatId)
+            }
             className="btn-press inline-flex items-center justify-center border border-white/80 bg-white px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black sm:text-xs"
           >
             {step === "pay"
               ? busy
                 ? "Opening payment…"
-                : `Pay ${formatIdr(table.priceIdr)}`
+                : `Pay ${table ? formatIdr(table.priceIdr) : ""}`.trim()
               : "Continue"}
           </button>
         </div>
@@ -584,8 +503,8 @@ export default function ReserveForm({
           <p className="text-xs leading-relaxed text-white/40">
             Pay the booking fee within 60 minutes to keep this table. The hold
             and the payment expire together. Minimum spend is paid at the venue
-            and is not included in the booking fee. We send the invoice by email
-            and WhatsApp.
+            and is not included in the booking fee. Extra guests buy their own
+            tickets. We send the invoice by email and WhatsApp.
           </p>
         ) : null}
       </form>

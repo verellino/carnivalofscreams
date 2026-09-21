@@ -18,7 +18,7 @@ type Props = {
 export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   const [preview, setPreview] = useState<ReservePreview>({
     step: "identity",
-    packageId: "luxer",
+    packageId: null,
     nightId: "oct-30",
     seatId: null,
   });
@@ -28,13 +28,10 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
 
   const selectedSeat = preview.seatId ? getSeat(preview.seatId) : undefined;
-  const selectedArea = getTablePackage(preview.packageId);
-  const picking =
-    preview.step === "seat" || preview.step === "category";
-  const focusedPackageId =
-    preview.step === "seat" || preview.step === "pay"
-      ? preview.packageId
-      : undefined;
+  const selectedArea = preview.packageId
+    ? getTablePackage(preview.packageId)
+    : undefined;
+  const picking = preview.step === "seat";
 
   const onPreviewChange = useCallback((next: ReservePreview) => {
     setPreview(next);
@@ -49,13 +46,6 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
       cancelled = true;
     };
   }, [preview.nightId, preview.step]);
-
-  const hint =
-    preview.step === "seat" && selectedArea
-      ? `Tap ${selectedArea.range} on the map`
-      : picking
-        ? "Tap a table on the map"
-        : undefined;
 
   return (
     <div className="mx-auto w-full max-w-[92rem] px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
@@ -80,14 +70,21 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
         <section className="min-w-0 flex-1">
           <SeatMap
             mode={picking ? "pick" : "preview"}
-            packageId={focusedPackageId}
             selectedSeatId={preview.seatId}
             takenSeatIds={takenSeatIds}
-            hint={hint}
             onSelect={(seat) =>
               setMapPick({ id: seat.id, nonce: Date.now() })
             }
           />
+          {picking ? (
+            <p className="mt-3 text-sm text-white/50">
+              Tap a labeled table. Held tables are marked in red.
+            </p>
+          ) : (
+            <p className="mt-3 text-sm text-white/40">
+              Floor plan for Carnaval of Screams 2026.
+            </p>
+          )}
         </section>
 
         <aside className="w-full shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[24rem] lg:overflow-y-auto">
