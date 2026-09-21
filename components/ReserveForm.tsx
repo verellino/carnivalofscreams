@@ -36,6 +36,14 @@ type Props = {
 const STEPS: ReserveStep[] = ["identity", "night", "category", "seat", "pay"];
 const STEP_LABELS = ["Details", "Day", "Area", "Table", "Pay"] as const;
 
+const AREA_DOT: Record<TablePackageId, string> = {
+  luxer: "bg-violet-300",
+  etius: "bg-sky-300",
+  tivex: "bg-pink-300",
+  perio: "bg-amber-300",
+  onomy: "bg-cyan-300",
+};
+
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
     (resolve, reject) => {
@@ -374,26 +382,10 @@ export default function ReserveForm({
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
               Choose an area
             </legend>
+            <p className="mt-3 text-sm text-white/55">
+              Match the name on the floor plan. Then pick a numbered table.
+            </p>
             <div className="mt-3 flex flex-col gap-2">
-              <div className="border border-white/10 bg-black/20 p-4 text-white/45">
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="font-heading text-sm tracking-[0.16em] text-white/70 sm:text-base">
-                    {RESID_AREA.name}
-                  </span>
-                  <span className="font-heading text-[10px] tracking-[0.18em] text-white/40">
-                    Invite only
-                  </span>
-                </span>
-                <span className="mt-2 block text-sm text-white/45">
-                  {RESID_AREA.furniture} · {RESID_AREA.tagline}
-                </span>
-                <span className="mt-3 block font-heading text-[11px] tracking-[0.18em] text-white/55">
-                  Minimum spend {formatIdr(RESID_AREA.minSpendIdr)}
-                </span>
-                <span className="mt-2 block text-xs leading-relaxed text-white/35">
-                  Resid is not open for online booking yet.
-                </span>
-              </div>
               {TABLE_PACKAGES.map((pack) => {
                 const selected = packageId === pack.id;
                 return (
@@ -424,41 +416,33 @@ export default function ReserveForm({
                       className="sr-only"
                     />
                     <span className="flex items-baseline justify-between gap-3">
-                      <span className="font-heading text-sm tracking-[0.16em] text-white sm:text-base">
+                      <span className="inline-flex items-center gap-2 font-heading text-sm tracking-[0.16em] text-white sm:text-base">
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${AREA_DOT[pack.id]}`}
+                          aria-hidden="true"
+                        />
                         {pack.name}
                       </span>
                       <span className="font-heading text-sm tracking-[0.12em] text-white">
                         {formatIdr(pack.priceIdr)}
                       </span>
                     </span>
-                    <span className="mt-2 block text-sm text-white/70">
+                    <span className="mt-2 block text-sm text-white/65">
                       {pack.furniture} · {pack.seats} pax · {pack.range}
                     </span>
-                    <span className="mt-1 block text-sm text-white/50">
-                      {pack.tagline}
-                    </span>
-                    <span className="mt-2 block text-sm text-white/55">
-                      {pack.tickets} event tickets · {pack.reservation}
-                    </span>
-                    <span className="mt-3 block font-heading text-[11px] tracking-[0.18em] text-white">
-                      Minimum spend {formatIdr(pack.minSpendIdr)}
-                    </span>
-                    <span className="mt-2 block text-xs leading-relaxed text-white/40">
-                      Seating capacity is {pack.seats} pax, while the booking
-                      fee includes {pack.tickets} event tickets only.
+                    <span className="mt-1 block text-sm text-white/45">
+                      {pack.tickets} tickets included · min. spend{" "}
+                      {formatIdr(pack.minSpendIdr)}
                     </span>
                   </label>
                 );
               })}
             </div>
-            <ul className="mt-4 space-y-1 text-xs leading-relaxed text-white/40">
-              <li>
-                The booking fee is the Phase 1 reservation ticket and holds the
-                table
-              </li>
-              <li>Minimum spend is paid separately at the venue</li>
-              <li>Booking fee is non-deductible from minimum spend</li>
-            </ul>
+            <p className="mt-4 text-xs leading-relaxed text-white/40">
+              Extra guests buy their own tickets. Minimum spend is paid at the
+              venue and is not deducted from this booking fee. {RESID_AREA.name}{" "}
+              is invite-only and is not in this booking.
+            </p>
           </fieldset>
         ) : null}
 
@@ -468,8 +452,7 @@ export default function ReserveForm({
               Choose a table
             </legend>
             <p className="mt-3 text-sm text-white/55">
-              Tap a table on the floor plan, or pick from the list. Paying holds
-              this table for 60 minutes.
+              Tap {table.range} on the map, or pick a number here.
             </p>
             <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {categorySeats.map((item) => {

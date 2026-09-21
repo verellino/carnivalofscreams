@@ -7,6 +7,7 @@ import ReserveForm, {
   type ReservePreview,
 } from "@/components/ReserveForm";
 import SeatMap from "@/components/SeatMap";
+import { getSeat } from "@/lib/seats";
 
 type Props = {
   enabled: boolean;
@@ -24,6 +25,8 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
     null,
   );
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
+
+  const selectedSeat = preview.seatId ? getSeat(preview.seatId) : undefined;
 
   const onPreviewChange = useCallback((next: ReservePreview) => {
     setPreview(next);
@@ -52,10 +55,9 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
           Hold a table for the night
         </p>
         <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
-          Enter your details, pick a night, an area, and a table on the COS26
-          floor plan, then pay the booking fee through DOKU. That locks the
-          table for 60 minutes. Minimum spend is paid at the venue. We send the
-          invoice by email and WhatsApp.
+          The floor plan already shows every table. Choose an area, then tap the
+          matching label on the map or pick it from the list. The booking fee
+          holds that table for 60 minutes. Minimum spend is paid at the venue.
         </p>
         <div className="mt-12">
           <SeatMap
@@ -77,28 +79,15 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
               setMapPick({ id: seat.id, nonce: Date.now() })
             }
           />
-          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-heading text-[10px] tracking-[0.18em] text-white/45">
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-violet-300" />
-              Luxer sofa
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-sky-300" />
-              Etius daybed
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-pink-300" />
-              Tivex long table
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-300" />
-              Perio long table
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" />
-              Onomy table
-            </li>
-          </ul>
+          {selectedSeat ? (
+            <p className="mt-4 font-heading text-[11px] tracking-[0.18em] text-white/70">
+              Selected · {selectedSeat.label}
+            </p>
+          ) : preview.step === "category" || preview.step === "seat" ? (
+            <p className="mt-4 text-sm text-white/45">
+              Hover a table to highlight it, then tap to select.
+            </p>
+          ) : null}
         </div>
       </div>
 
