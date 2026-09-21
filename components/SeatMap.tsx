@@ -60,6 +60,7 @@ export default function SeatMap({
           href="/images/venue-layout.webp"
           width={MAP_VIEWBOX.width}
           height={MAP_VIEWBOX.height}
+          pointerEvents="none"
         />
 
         {SEATS.map((seat) => {
@@ -84,21 +85,38 @@ export default function SeatMap({
               : showPack
                 ? pack.stroke
                 : "transparent";
+          const hitW = seat.w * 1.45;
+          const hitH = seat.h * 1.45;
 
           return (
             <g
               key={seat.id}
               opacity={dimmed ? 0.16 : 1}
               transform={`translate(${seat.x} ${seat.y}) rotate(${seat.rotate})`}
-              style={{ cursor: pickable ? "pointer" : "default" }}
-              pointerEvents={pickable || isSelected ? "auto" : "none"}
-              onClick={() => {
-                if (pickable) onSelect?.(seat);
-              }}
             >
               <title>
                 {isTaken ? `${seat.short} held` : seat.label}
               </title>
+              <rect
+                x={-hitW / 2}
+                y={-hitH / 2}
+                width={hitW}
+                height={hitH}
+                rx="12"
+                fill="transparent"
+                pointerEvents={pickable ? "all" : "none"}
+                style={{ cursor: pickable ? "pointer" : "default" }}
+                onPointerDown={(event) => {
+                  if (!pickable) return;
+                  event.preventDefault();
+                  onSelect?.(seat);
+                }}
+                onClick={(event) => {
+                  if (!pickable) return;
+                  event.preventDefault();
+                  onSelect?.(seat);
+                }}
+              />
               <rect
                 x={-seat.w / 2}
                 y={-seat.h / 2}
@@ -108,6 +126,7 @@ export default function SeatMap({
                 fill={fill}
                 stroke={stroke}
                 strokeWidth={isSelected || isTaken ? 4 : 3}
+                pointerEvents="none"
               />
               {mode === "pick" && packageId && inCategory ? (
                 <text
@@ -118,6 +137,7 @@ export default function SeatMap({
                   letterSpacing="1"
                   fontFamily="var(--font-angie), Helvetica, sans-serif"
                   transform={`rotate(${-seat.rotate})`}
+                  pointerEvents="none"
                 >
                   {seat.short}
                 </text>
