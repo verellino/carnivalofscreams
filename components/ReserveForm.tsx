@@ -30,6 +30,7 @@ type Props = {
   checkoutJsUrl: string;
   takenSeatIds: string[];
   mapPick?: { id: string; nonce: number } | null;
+  dense?: boolean;
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
@@ -65,6 +66,7 @@ export default function ReserveForm({
   checkoutJsUrl,
   takenSeatIds,
   mapPick,
+  dense = false,
   onPreviewChange,
 }: Props) {
   const [step, setStep] = useState<ReserveStep>("identity");
@@ -238,7 +240,7 @@ export default function ReserveForm({
         />
       ) : null}
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <form onSubmit={onSubmit} className={`flex flex-col ${dense ? "gap-4" : "gap-6"}`}>
         <ol className="grid grid-cols-4 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
@@ -376,14 +378,14 @@ export default function ReserveForm({
               Choose a table
             </legend>
             {seat && table ? (
-              <div className="mt-4 border border-white/80 bg-white/10 px-4 py-4">
+              <div className="mt-3 border border-white/80 bg-white/10 px-4 py-3">
                 <p className="font-heading text-lg tracking-[0.16em] text-white">
                   {seat.short}
                 </p>
-                <p className="mt-2 text-sm text-white/70">
+                <p className="mt-1 text-sm text-white/70">
                   {table.name} · {table.furniture} · {table.seats} pax
                 </p>
-                <p className="mt-3 font-heading text-sm tracking-[0.12em] text-white">
+                <p className="mt-2 font-heading text-sm tracking-[0.12em] text-white">
                   {formatIdr(table.priceIdr)}
                 </p>
                 <p className="mt-1 text-sm text-white/50">
@@ -392,12 +394,12 @@ export default function ReserveForm({
                 </p>
               </div>
             ) : (
-              <p className="mt-4 text-sm leading-relaxed text-white/65">
-                Tap a labeled table on the floor plan. The area and price come
-                from that table.
+              <p className="mt-3 text-sm leading-relaxed text-white/65">
+                Pinch to zoom, then tap the printed table number. The area and
+                price come from that table.
               </p>
             )}
-            <ul className="mt-5 space-y-1.5 text-xs leading-relaxed text-white/45">
+            <ul className="mt-5 hidden space-y-1.5 text-xs leading-relaxed text-white/45 lg:block">
               {TABLE_PACKAGES.map((pack) => (
                 <li
                   key={pack.id}

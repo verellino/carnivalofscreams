@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getSeat, mapViewForPackage, SEATS, seatsForPackage } from "./seats";
+import {
+  getSeat,
+  mapViewForBookable,
+  mapViewForPackage,
+  MAP_VIEWBOX,
+  nearestSeat,
+  SEATS,
+  seatsForPackage,
+} from "./seats";
 
 test("floor plan has every COS26 table", () => {
   assert.equal(seatsForPackage("luxer").length, 26);
@@ -21,6 +29,22 @@ test("floor plan has every COS26 table", () => {
   assert.equal(getSeat("onomy-10")?.short, "O10");
 });
 
+test("printed Tivex tables sit in the purple block, not on Luxer", () => {
+  const t12 = getSeat("tivex-12")!;
+  const t8 = getSeat("tivex-8")!;
+  const l18 = getSeat("luxer-18")!;
+
+  assert.ok(t12.x < l18.x, "T12 is left of L18");
+  assert.ok(t12.y > l18.y, "T12 is below the Luxer sofa row");
+  assert.ok(t12.x < t8.x, "T12 is left of T8");
+  assert.ok(t12.y > t8.y, "T12 is below T8");
+
+  const hitT12 = nearestSeat(t12.x, t12.y);
+  assert.equal(hitT12?.id, "tivex-12");
+  const hitT8 = nearestSeat(t8.x, t8.y);
+  assert.equal(hitT8?.id, "tivex-8");
+});
+
 test("map view zooms to an area without leaving the floor plan", () => {
   const full = mapViewForPackage();
   assert.equal(full.x, 0);
@@ -38,4 +62,13 @@ test("map view zooms to an area without leaving the floor plan", () => {
   const t6 = getSeat("tivex-6")!;
   assert.ok(t6.x >= tivex.x && t6.x <= tivex.x + tivex.width);
   assert.ok(t6.y >= tivex.y && t6.y <= tivex.y + tivex.height);
+});
+
+test("bookable view keeps every table and drops empty Resid space", () => {
+  const bookable = mapViewForBookable();
+  assert.ok(bookable.width < MAP_VIEWBOX.width || bookable.height < MAP_VIEWBOX.height);
+  for (const seat of SEATS) {
+    assert.ok(seat.x >= bookable.x && seat.x <= bookable.x + bookable.width);
+    assert.ok(seat.y >= bookable.y && seat.y <= bookable.y + bookable.height);
+  }
 });
