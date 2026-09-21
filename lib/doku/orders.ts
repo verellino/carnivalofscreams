@@ -1,4 +1,5 @@
 import type { NightId, TablePackageId } from "../tables";
+import { asPackageId } from "../tables";
 
 export function newOrderId(packageId: string, nightId: string) {
   const night = nightId === "oct-31" ? "31" : "30";
@@ -7,26 +8,27 @@ export function newOrderId(packageId: string, nightId: string) {
   return `COS-${night}-${pack}-${rand}`;
 }
 
+const ORDER_PACKAGE_CODES: Record<string, TablePackageId> = {
+  LUX: "luxer",
+  ETI: "etius",
+  TIV: "tivex",
+  PER: "perio",
+  ONO: "onomy",
+  SOF: "luxer",
+  VIP: "luxer",
+  COM: "tivex",
+  PRE: "perio",
+  REG: "onomy",
+  STA: "onomy",
+};
+
 export function parseOrderId(orderId: string) {
   const match = /^COS-(30|31)-([A-Z]{3})-/.exec(orderId);
   if (!match) return undefined;
 
   const nightId: NightId = match[1] === "31" ? "oct-31" : "oct-30";
-  const packCode = match[2];
-  const packageId: TablePackageId | undefined =
-    packCode === "REG"
-      ? "regular"
-      : packCode === "PRE"
-        ? "premium"
-        : packCode === "COM"
-          ? "communal"
-          : packCode === "SOF"
-            ? "sofa"
-            : packCode === "STA"
-              ? "regular"
-              : packCode === "VIP"
-                ? "sofa"
-                : undefined;
+  const packageId =
+    ORDER_PACKAGE_CODES[match[2]] ?? asPackageId(match[2].toLowerCase());
 
   return { nightId, packageId };
 }

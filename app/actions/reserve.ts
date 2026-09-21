@@ -132,17 +132,17 @@ export async function createReservation(
     return respond({ ok: false, error: "Please choose a night." });
   }
   if (!packageId) {
-    return respond({ ok: false, error: "Please choose a table category." });
+    return respond({ ok: false, error: "Please choose an area." });
   }
 
   const table = getTablePackage(packageId);
   if (!table) {
-    return respond({ ok: false, error: "Please choose a table category." });
+    return respond({ ok: false, error: "Please choose an area." });
   }
 
   const seat = getSeat(seatId);
   if (!seat || seat.packageId !== packageId) {
-    return respond({ ok: false, error: "Please pick a seat in that category." });
+    return respond({ ok: false, error: "Please pick a table in that area." });
   }
 
   const orderId = newOrderId(packageId, nightId);
@@ -173,12 +173,12 @@ export async function createReservation(
   } catch (error) {
     if (isUniqueViolation(error)) {
       return respond(
-        { ok: false, error: "That seat was just taken. Pick another." },
+        { ok: false, error: "That table was just taken. Pick another." },
         orderId,
       );
     }
     const message =
-      error instanceof Error ? error.message : "Could not hold that seat.";
+      error instanceof Error ? error.message : "Could not hold that table.";
     return respond({ ok: false, error: message }, orderId);
   }
 
@@ -229,13 +229,13 @@ export async function selectReservationSeat(
   });
 
   if (!ORDER_ID_RE.test(orderId) || !getSeat(seatId)) {
-    return { ok: false, error: "Please pick a seat." };
+    return { ok: false, error: "Please pick a table." };
   }
 
   try {
     const claimed = await claimReservationSeat(orderId, seatId);
     if (!claimed) {
-      return { ok: false, error: "That seat was just taken. Pick another." };
+      return { ok: false, error: "That table was just taken. Pick another." };
     }
     await sendReservationInvoice(claimed, "/reserve/confirmed");
     await insertAuditLogSafe({
@@ -250,7 +250,7 @@ export async function selectReservationSeat(
     return { ok: true };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Could not hold that seat.";
+      error instanceof Error ? error.message : "Could not hold that table.";
     const latest = await getReservationSafe(orderId);
     await insertAuditLogSafe({
       event: "reservation.seat.error",

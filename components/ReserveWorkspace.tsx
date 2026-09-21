@@ -7,6 +7,8 @@ import ReserveForm, {
   type ReservePreview,
 } from "@/components/ReserveForm";
 import SeatMap from "@/components/SeatMap";
+import { getSeat } from "@/lib/seats";
+import { getTablePackage } from "@/lib/tables";
 
 type Props = {
   enabled: boolean;
@@ -16,12 +18,16 @@ type Props = {
 export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   const [preview, setPreview] = useState<ReservePreview>({
     step: "identity",
-    packageId: "sofa",
+    packageId: null,
     nightId: "oct-30",
     seatId: null,
   });
-  const [mapSeatId, setMapSeatId] = useState<string | null>(null);
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
+
+  const selectedSeat = preview.seatId ? getSeat(preview.seatId) : undefined;
+  const selectedArea = preview.packageId
+    ? getTablePackage(preview.packageId)
+    : undefined;
 
   const onPreviewChange = useCallback((next: ReservePreview) => {
     setPreview(next);
@@ -38,64 +44,42 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   }, [preview.nightId, preview.step]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-28 pt-24 sm:pt-32 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-start lg:gap-16 lg:pb-36">
-      <div>
-        <p className="font-heading text-[11px] tracking-[0.42em] text-white/55 sm:text-xs">
-          Table reservation
-        </p>
-        <h1 className="pass-title mt-5 font-heading text-5xl tracking-[0.14em] text-white sm:text-7xl">
-          Reserve
-        </h1>
-        <p className="mt-6 font-heading text-sm tracking-[0.28em] text-white sm:text-xl">
-          Hold a table for the night
-        </p>
-        <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
-          Enter your details, pick a night, a table, and the seat on the floor
-          plan, then pay the booking fee through DOKU. That locks the seat for
-          60 minutes. Minimum spend is paid at the venue. We send the invoice
-          by email and WhatsApp.
-        </p>
-        <div className="mt-12">
-          <SeatMap
-            mode={preview.step === "seat" ? "pick" : "preview"}
-            packageId={
-              preview.step === "identity" || preview.step === "night"
-                ? undefined
-                : preview.packageId
-            }
-            selectedSeatId={preview.seatId}
-            takenSeatIds={takenSeatIds}
-            onSelect={(seat) => setMapSeatId(seat.id)}
-          />
-          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-heading text-[10px] tracking-[0.18em] text-white/45">
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-sky-300" />
-              Sofa & daybed
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-300" />
-              Premium
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white" />
-              Regular
-            </li>
-            <li className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-pink-300" />
-              Communal
-            </li>
-          </ul>
+    <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="font-heading text-[11px] tracking-[0.42em] text-white/55">
+            Table reservation
+          </p>
+          <h1 className="pass-title mt-2 font-heading text-4xl tracking-[0.14em] text-white sm:text-5xl">
+            Reserve
+          </h1>
         </div>
-      </div>
+        {selectedSeat && selectedArea ? (
+          <p className="font-heading text-sm tracking-[0.18em] text-white">
+            {selectedSeat.short}
+            <span className="text-white/45"> · {selectedArea.name}</span>
+          </p>
+        ) : null}
+      </header>
 
-      <div className="pass-panel p-6 sm:p-8">
-        <ReserveForm
-          enabled={enabled}
-          checkoutJsUrl={checkoutJsUrl}
-          takenSeatIds={takenSeatIds}
-          mapSeatId={mapSeatId}
-          onPreviewChange={onPreviewChange}
-        />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <aside className="w-full shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[28rem] lg:overflow-y-auto">
+          <div className="pass-panel p-5 sm:p-6">
+            <ReserveForm
+              enabled={enabled}
+              checkoutJsUrl={checkoutJsUrl}
+              takenSeatIds={takenSeatIds}
+              onPreviewChange={onPreviewChange}
+            />
+          </div>
+        </aside>
+
+        <section className="min-w-0 flex-1">
+          <SeatMap />
+          <p className="mt-3 text-sm text-white/45">
+            Floor plan for reference. Pick a table number in the form.
+          </p>
+        </section>
       </div>
     </div>
   );
