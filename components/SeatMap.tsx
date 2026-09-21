@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-import { MAP_VIEWBOX, SEATS, type VenueSeat } from "@/lib/seats";
+import {
+  MAP_VIEWBOX,
+  mapViewForPackage,
+  SEATS,
+  type VenueSeat,
+} from "@/lib/seats";
 import type { TablePackageId } from "@/lib/tables";
 
 type Mode = "preview" | "pick";
@@ -12,6 +17,7 @@ type Props = {
   packageId?: TablePackageId;
   selectedSeatId?: string | null;
   takenSeatIds?: string[];
+  hint?: string;
   onSelect?: (seat: VenueSeat) => void;
 };
 
@@ -28,15 +34,20 @@ export default function SeatMap({
   packageId,
   selectedSeatId,
   takenSeatIds = [],
+  hint,
   onSelect,
 }: Props) {
   const taken = new Set(takenSeatIds);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const view = mapViewForPackage(packageId);
+  const selected = selectedSeatId
+    ? SEATS.find((seat) => seat.id === selectedSeatId)
+    : undefined;
 
   return (
-    <div className="pass-panel relative overflow-hidden">
+    <div className="pass-panel relative overflow-hidden bg-black">
       <svg
-        viewBox={`0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`}
+        viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
         className="relative z-10 h-auto w-full"
         role="img"
         aria-label="Venue floor plan"
@@ -54,9 +65,10 @@ export default function SeatMap({
           const isSelected = selectedSeatId === seat.id;
           const isHovered = hoveredId === seat.id;
           const pickable = mode === "pick" && inCategory && !isTaken;
-          const showRing = isSelected || isTaken || (pickable && isHovered);
-          const hitW = seat.w * 1.55;
-          const hitH = seat.h * 1.55;
+          const showRing =
+            isTaken || (pickable && isHovered && !isSelected);
+          const hitW = seat.w * 1.7;
+          const hitH = seat.h * 1.7;
 
           return (
             <g
@@ -102,27 +114,48 @@ export default function SeatMap({
                   height={seat.h}
                   rx="10"
                   fill={
-                    isSelected
-                      ? "rgba(255,255,255,0.16)"
-                      : isTaken
-                        ? "rgba(196,69,58,0.28)"
-                        : "transparent"
+                    isTaken ? "rgba(196,69,58,0.28)" : "transparent"
                   }
                   stroke={
-                    isSelected
-                      ? "rgba(255,255,255,0.95)"
-                      : isTaken
-                        ? "rgba(248,113,113,0.95)"
-                        : HOVER_STROKE[seat.packageId]
+                    isTaken
+                      ? "rgba(248,113,113,0.95)"
+                      : HOVER_STROKE[seat.packageId]
                   }
-                  strokeWidth={isSelected || isTaken ? 5 : 4}
+                  strokeWidth={isTaken ? 5 : 4}
                   pointerEvents="none"
                 />
               ) : null}
             </g>
           );
         })}
+
+        {selected ? (
+          <g transform={`translate(${selected.x} ${selected.y})`}>
+            <circle
+              r="34"
+              fill="#fff"
+              stroke="rgba(0,0,0,0.35)"
+              strokeWidth="3"
+            />
+            <text
+              y="7"
+              textAnchor="middle"
+              fill="#050308"
+              fontSize="22"
+              fontWeight="700"
+              letterSpacing="1"
+              fontFamily="var(--font-angie), Helvetica, sans-serif"
+            >
+              {selected.short}
+            </text>
+          </g>
+        ) : null}
       </svg>
+      {hint ? (
+        <p className="pointer-events-none absolute bottom-3 left-3 right-3 font-heading text-[10px] tracking-[0.22em] text-white/70 sm:text-[11px]">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

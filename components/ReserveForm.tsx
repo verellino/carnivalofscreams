@@ -112,6 +112,7 @@ export default function ReserveForm({
         setAppliedMapNonce(mapPick.nonce);
         if (!sameArea) setPackageId(mapped.packageId);
         if (seatId !== mapped.id) setSeatId(mapped.id);
+        if (step === "category") setStep("seat");
       }
     }
   }
@@ -246,7 +247,7 @@ export default function ReserveForm({
         />
       ) : null}
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-8">
+      <form onSubmit={onSubmit} className="flex flex-col gap-6">
         <ol className="grid grid-cols-5 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
@@ -383,7 +384,7 @@ export default function ReserveForm({
               Choose an area
             </legend>
             <p className="mt-3 text-sm text-white/55">
-              Match the name on the floor plan. Then pick a numbered table.
+              Pick an area, or tap a table on the map.
             </p>
             <div className="mt-3 flex flex-col gap-2">
               {TABLE_PACKAGES.map((pack) => {
@@ -449,24 +450,36 @@ export default function ReserveForm({
         {step === "seat" ? (
           <fieldset className="min-w-0">
             <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a table
+              {table.name}
             </legend>
             <p className="mt-3 text-sm text-white/55">
-              Tap {table.range} on the map, or pick a number here.
+              {table.furniture} · {table.range} · {table.seats} pax
             </p>
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {seat ? (
+              <p className="mt-4 border border-white/80 bg-white/10 px-4 py-3 font-heading text-sm tracking-[0.16em] text-white">
+                Table {seat.short}
+                <span className="mt-1 block font-sans text-sm font-normal normal-case tracking-normal text-white/55">
+                  {formatIdr(table.priceIdr)} · {table.tickets} tickets included
+                </span>
+              </p>
+            ) : (
+              <p className="mt-4 text-sm text-white/55">
+                Tap a table on the map. Numbers below are a backup.
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-1.5">
               {categorySeats.map((item) => {
                 const taken = takenSeatIds.includes(item.id);
                 const selected = seatId === item.id;
                 return (
                   <label
                     key={item.id}
-                    className={`border px-2 py-3 text-center transition-colors ${
+                    className={`min-w-11 border px-2 py-2 text-center transition-colors ${
                       taken
                         ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
                         : selected
-                          ? "cursor-pointer border-white/80 bg-white/10"
-                          : "cursor-pointer border-white/15 bg-black/30 hover:border-white/35"
+                          ? "cursor-pointer border-white bg-white text-black"
+                          : "cursor-pointer border-white/15 bg-black/30 text-white hover:border-white/50"
                     }`}
                   >
                     <input
@@ -478,11 +491,8 @@ export default function ReserveForm({
                       onChange={() => setSeatId(item.id)}
                       className="sr-only"
                     />
-                    <span className="block font-heading text-[11px] tracking-[0.16em] text-white">
+                    <span className="block font-heading text-[11px] tracking-[0.12em]">
                       {item.short}
-                    </span>
-                    <span className="mt-1 block text-[10px] text-white/45">
-                      {taken ? "Held" : selected ? "Selected" : item.label}
                     </span>
                   </label>
                 );

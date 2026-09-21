@@ -143,3 +143,39 @@ export function getSeat(id: string) {
 export function seatsForPackage(packageId: TablePackageId) {
   return SEATS.filter((seat) => seat.packageId === packageId);
 }
+
+export function mapViewForPackage(packageId?: TablePackageId) {
+  const seats = packageId ? seatsForPackage(packageId) : SEATS;
+  if (!packageId || seats.length === 0) {
+    return { x: 0, y: 0, width: MAP_VIEWBOX.width, height: MAP_VIEWBOX.height };
+  }
+
+  const pad = 220;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const seat of seats) {
+    const radius = Math.max(seat.w, seat.h) / 2 + pad;
+    minX = Math.min(minX, seat.x - radius);
+    minY = Math.min(minY, seat.y - radius);
+    maxX = Math.max(maxX, seat.x + radius);
+    maxY = Math.max(maxY, seat.y + radius);
+  }
+
+  const aspect = MAP_VIEWBOX.width / MAP_VIEWBOX.height;
+  let width = Math.max(maxX - minX, 1);
+  let height = Math.max(maxY - minY, 1);
+  if (width / height > aspect) {
+    height = width / aspect;
+  } else {
+    width = height * aspect;
+  }
+
+  let x = (minX + maxX) / 2 - width / 2;
+  let y = (minY + maxY) / 2 - height / 2;
+  x = Math.min(Math.max(0, x), MAP_VIEWBOX.width - width);
+  y = Math.min(Math.max(0, y), MAP_VIEWBOX.height - height);
+
+  return { x, y, width, height };
+}

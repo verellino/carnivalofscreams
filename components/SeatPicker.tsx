@@ -25,7 +25,7 @@ export default function SeatPicker({
 
   function onConfirm() {
     if (!selectedSeatId) {
-          setError("Pick a table in the area you paid for.");
+      setError("Pick a table in the area you paid for.");
       return;
     }
 
@@ -44,7 +44,7 @@ export default function SeatPicker({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
+    <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
       <SeatMap
         mode="pick"
         packageId={packageId}
