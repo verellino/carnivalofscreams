@@ -359,7 +359,7 @@ export default function SeatMap({
         </svg>
       </div>
 
-      <div className="pointer-events-auto absolute bottom-3 right-3 z-20 flex gap-1">
+      <div className="pointer-events-auto absolute right-3 top-3 z-20 flex gap-1">
         <button
           type="button"
           onClick={() => {
