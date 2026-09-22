@@ -1,117 +1,55 @@
-"use client";
-
-import { MAP_VIEWBOX, SOFAS, type SofaSeat } from "@/lib/seats";
-import type { TablePackageId } from "@/lib/tables";
-
-type Mode = "preview" | "pick";
+import { getAreaOutline, VENUE_MAP } from "@/lib/venue-areas";
 
 type Props = {
-  mode?: Mode;
-  packageId?: TablePackageId;
-  selectedSeatId?: string | null;
-  takenSeatIds?: string[];
-  onSelect?: (seat: SofaSeat) => void;
-};
-
-const PACKAGE_STYLE: Record<
-  TablePackageId,
-  { fill: string; stroke: string }
-> = {
-  sofa: {
-    fill: "rgba(56,189,248,0.22)",
-    stroke: "rgba(125,211,252,0.95)",
-  },
-  premium: {
-    fill: "rgba(250,204,21,0.18)",
-    stroke: "rgba(250,204,21,0.9)",
-  },
-  regular: {
-    fill: "rgba(255,255,255,0.12)",
-    stroke: "rgba(255,255,255,0.85)",
-  },
-  communal: {
-    fill: "rgba(244,114,182,0.2)",
-    stroke: "rgba(244,114,182,0.9)",
-  },
+  className?: string;
+  /** Area to spotlight on the plan; everything else dims behind it. */
+  highlightAreaId?: string | null;
+  highlightLabel?: string;
 };
 
 export default function SeatMap({
-  mode = "preview",
-  packageId,
-  selectedSeatId,
-  takenSeatIds = [],
-  onSelect,
+  className,
+  highlightAreaId,
+  highlightLabel,
 }: Props) {
-  const taken = new Set(takenSeatIds);
+  const outline = getAreaOutline(highlightAreaId);
+  const frame = `M0,0 H${VENUE_MAP.width} V${VENUE_MAP.height} H0 Z`;
 
   return (
-    <div className="pass-panel relative overflow-hidden">
-      <svg
-        viewBox={`0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`}
-        className="relative z-10 h-auto w-full"
-        role="img"
-        aria-label="Venue floor plan"
-      >
-        <image
-          href="/images/venue-layout.webp"
-          width={MAP_VIEWBOX.width}
-          height={MAP_VIEWBOX.height}
-        />
-
-        {SOFAS.map((seat) => {
-          const inCategory = !packageId || seat.packageId === packageId;
-          const isTaken = taken.has(seat.id);
-          const isSelected = selectedSeatId === seat.id;
-          const pickable = mode === "pick" && inCategory && !isTaken;
-          const dimmed = packageId ? !inCategory : false;
-          const pack = PACKAGE_STYLE[seat.packageId];
-          const fill = isSelected
-            ? "rgba(255,255,255,0.28)"
-            : isTaken
-              ? "rgba(196,69,58,0.35)"
-              : inCategory
-                ? pack.fill
-                : "transparent";
-          const stroke = isSelected
-            ? "rgba(255,255,255,0.95)"
-            : isTaken
-              ? "rgba(196,69,58,0.9)"
-              : inCategory
-                ? pack.stroke
-                : "rgba(255,255,255,0.2)";
-
-          return (
-            <g
-              key={seat.id}
-              opacity={dimmed ? 0.22 : 1}
-              style={{ cursor: pickable ? "pointer" : "default" }}
-              onClick={() => {
-                if (pickable) onSelect?.(seat);
-              }}
-            >
-              <circle
-                cx={seat.x}
-                cy={seat.y}
-                r="26"
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={isSelected || isTaken ? 4 : 3}
-              />
-              <text
-                x={seat.x}
-                y={seat.y + 6}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontSize="16"
-                letterSpacing="1"
-                fontFamily="var(--font-angie), Helvetica, sans-serif"
-              >
-                {seat.short}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+    <div
+      className={`pass-panel relative overflow-hidden bg-black ${className ?? ""}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={VENUE_MAP.src}
+        alt={VENUE_MAP.alt}
+        className="h-auto w-full"
+      />
+      {outline ? (
+        <svg
+          viewBox={`0 0 ${VENUE_MAP.width} ${VENUE_MAP.height}`}
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          role="img"
+          aria-label={
+            highlightLabel
+              ? `${highlightLabel} highlighted on the floor plan`
+              : "Selected area highlighted on the floor plan"
+          }
+        >
+          <path
+            d={`${frame} ${outline}`}
+            fillRule="evenodd"
+            fill="rgba(5, 3, 8, 0.72)"
+          />
+          <path
+            d={outline}
+            fill="rgba(243, 207, 138, 0.16)"
+            stroke="var(--gold-bright)"
+            strokeWidth={9}
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : null}
     </div>
   );
 }

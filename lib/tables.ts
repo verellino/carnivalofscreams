@@ -19,63 +19,101 @@ export type NightId = (typeof NIGHTS)[number]["id"];
 
 export const TABLE_PACKAGES = [
   {
-    id: "regular",
-    name: "Regular Table",
-    seats: 4,
-    tickets: 2,
-    priceIdr: 200_000,
-    minSpendIdr: 2_500_000,
-    blurb: "Four seats. Booking fee includes two event tickets.",
-    reservation: "1 Regular Table Reservation",
-  },
-  {
-    id: "premium",
-    name: "Premium Table",
-    seats: 4,
-    tickets: 2,
-    priceIdr: 250_000,
-    minSpendIdr: 3_000_000,
-    blurb: "Four seats closer to the floor. Booking fee includes two event tickets.",
-    reservation: "1 Premium Table Reservation",
-  },
-  {
-    id: "communal",
-    name: "Communal Table",
+    id: "luxer",
+    name: "Luxer Area",
+    furniture: "Sofa",
+    tagline: "Elevated comfort, reserved for you.",
     seats: 6,
     tickets: 3,
-    priceIdr: 300_000,
-    minSpendIdr: 3_500_000,
-    blurb: "Six seats. Booking fee includes three event tickets.",
-    reservation: "1 Communal Table Reservation",
-  },
-  {
-    id: "sofa",
-    name: "Premium Sofa & Daybed",
-    seats: 6,
-    tickets: 3,
-    priceIdr: 350_000,
+    priceIdr: 450_000,
     minSpendIdr: 6_000_000,
-    blurb: "Six seats on a sofa or daybed. Booking fee includes three event tickets.",
-    reservation: "1 Sofa or Daybed Reservation",
+    range: "L1–L26",
+    blurb: "Six seats on a reserved sofa. Booking fee includes three event tickets.",
+    reservation: "1 sofa reservation",
+  },
+  {
+    id: "etius",
+    name: "Etius Area",
+    furniture: "Daybed",
+    tagline: "Your own space, made for the night.",
+    seats: 6,
+    tickets: 3,
+    priceIdr: 450_000,
+    minSpendIdr: 6_000_000,
+    range: "E1–E4",
+    blurb: "Six seats on a reserved daybed. Booking fee includes three event tickets.",
+    reservation: "1 daybed reservation",
+  },
+  {
+    id: "tivex",
+    name: "Tivex Area",
+    furniture: "Long table",
+    tagline: "Bring your circle, share the night.",
+    seats: 6,
+    tickets: 3,
+    priceIdr: 400_000,
+    minSpendIdr: 3_500_000,
+    range: "T1–T17",
+    blurb: "Six seats at a long table. Booking fee includes three event tickets.",
+    reservation: "1 long table reservation",
+  },
+  {
+    id: "perio",
+    name: "Perio Area",
+    furniture: "Long table",
+    tagline: "Prime position, premium experience.",
+    seats: 4,
+    tickets: 2,
+    priceIdr: 350_000,
+    minSpendIdr: 3_000_000,
+    range: "P1–P3",
+    blurb: "Four seats at a long table. Booking fee includes two event tickets.",
+    reservation: "1 long table reservation",
+  },
+  {
+    id: "onomy",
+    name: "Onomy Area",
+    furniture: "Regular table",
+    tagline: "Your spot, your night, sorted.",
+    seats: 4,
+    tickets: 2,
+    priceIdr: 300_000,
+    minSpendIdr: 2_500_000,
+    range: "O1–O10",
+    blurb: "Four seats at a regular table. Booking fee includes two event tickets.",
+    reservation: "1 regular table reservation",
   },
 ] as const;
+
+export const RESID_AREA = {
+  id: "resid",
+  name: "Resid Area",
+  furniture: "Highest tier",
+  tagline: "The highest tier. The ultimate experience.",
+  minSpendIdr: 15_000_000,
+} as const;
 
 export type TablePackageId = (typeof TABLE_PACKAGES)[number]["id"];
 export type TablePackage = (typeof TABLE_PACKAGES)[number];
 
+const PACKAGE_ALIASES: Record<string, TablePackageId> = {
+  luxer: "luxer",
+  etius: "etius",
+  tivex: "tivex",
+  perio: "perio",
+  onomy: "onomy",
+  sofa: "luxer",
+  vip: "luxer",
+  communal: "tivex",
+  premium: "perio",
+  premiere: "perio",
+  regular: "onomy",
+  standard: "onomy",
+};
+
 export function asPackageId(value: unknown): TablePackageId | undefined {
-  if (
-    value === "regular" ||
-    value === "premium" ||
-    value === "communal" ||
-    value === "sofa"
-  ) {
-    return value;
-  }
-  if (value === "standard") return "regular";
-  if (value === "premiere") return "premium";
-  if (value === "vip") return "sofa";
-  return undefined;
+  if (typeof value !== "string") return undefined;
+  return PACKAGE_ALIASES[value];
 }
 
 export function getNight(id: string) {
