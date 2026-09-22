@@ -46,8 +46,8 @@ export default function SeatPicker({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
-      <div className="mb-8 flex w-full max-w-xl flex-wrap justify-center gap-1.5">
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
+      <div className="flex w-full flex-wrap justify-center gap-1.5">
         {seats.map((item) => {
           const taken = takenSeatIds.includes(item.id);
           const selected = selectedSeatId === item.id;
@@ -56,13 +56,15 @@ export default function SeatPicker({
               key={item.id}
               type="button"
               disabled={taken}
+              aria-pressed={selected}
+              aria-label={taken ? `${item.label} — taken` : item.label}
               onClick={() => {
                 setSelectedSeatId(item.id);
                 setError(null);
               }}
-              className={`min-w-11 border px-2 py-2 font-heading text-[11px] tracking-[0.12em] transition-colors ${
+              className={`min-w-12 border px-2 py-2 font-heading text-[11px] tracking-[0.12em] transition-colors ${
                 taken
-                  ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                  ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30 line-through"
                   : selected
                     ? "border-white bg-white text-black"
                     : "border-white/15 bg-black/30 text-white hover:border-white/50"
@@ -74,8 +76,6 @@ export default function SeatPicker({
         })}
       </div>
 
-      <SeatMap />
-
       {error ? (
         <p
           role="alert"
@@ -86,8 +86,8 @@ export default function SeatPicker({
         </p>
       ) : (
         <p className="mt-6 text-sm text-white/45">
-          Only tables in your paid area can be chosen. Use the floor plan as a
-          reference.
+          Only tables in your paid area can be chosen. Greyed-out numbers are
+          already taken.
         </p>
       )}
 
@@ -99,6 +99,18 @@ export default function SeatPicker({
       >
         {pending ? "Holding table…" : "Confirm table"}
       </button>
+
+      <details className="mt-10 w-full border border-white/15 bg-black/30 text-left">
+        <summary className="cursor-pointer list-none px-4 py-3 font-heading text-[11px] tracking-[0.28em] text-white/55 transition-colors hover:text-white">
+          View floor plan
+        </summary>
+        <div className="px-4 pb-4">
+          <SeatMap />
+          <p className="mt-3 text-sm text-white/45">
+            Reference only. Confirm your table with the buttons above.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

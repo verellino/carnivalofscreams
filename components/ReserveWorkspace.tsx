@@ -17,7 +17,7 @@ type Props = {
 
 export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   const [preview, setPreview] = useState<ReservePreview>({
-    step: "identity",
+    step: "night",
     packageId: null,
     nightId: "oct-30",
     seatId: null,
@@ -44,7 +44,7 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   }, [preview.nightId, preview.step]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-heading text-[11px] tracking-[0.42em] text-white/55">
@@ -62,25 +62,26 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
         ) : null}
       </header>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <aside className="w-full shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:w-[28rem] lg:overflow-y-auto">
-          <div className="pass-panel p-5 sm:p-6">
-            <ReserveForm
-              enabled={enabled}
-              checkoutJsUrl={checkoutJsUrl}
-              takenSeatIds={takenSeatIds}
-              onPreviewChange={onPreviewChange}
-            />
-          </div>
-        </aside>
+      <div className="pass-panel p-5 sm:p-6">
+        <ReserveForm
+          enabled={enabled}
+          checkoutJsUrl={checkoutJsUrl}
+          takenSeatIds={takenSeatIds}
+          onPreviewChange={onPreviewChange}
+        />
+      </div>
 
-        <section className="min-w-0 flex-1">
+      <details className="mt-6 border border-white/15 bg-black/30">
+        <summary className="cursor-pointer list-none px-4 py-3 font-heading text-[11px] tracking-[0.28em] text-white/55 transition-colors hover:text-white">
+          View floor plan
+        </summary>
+        <div className="px-4 pb-4">
           <SeatMap />
           <p className="mt-3 text-sm text-white/45">
-            Floor plan for reference. Pick a table number in the form.
+            Reference only. Every table is booked from the buttons above.
           </p>
-        </section>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

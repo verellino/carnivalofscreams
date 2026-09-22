@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
 import { getLineup } from "@/lib/lineup";
-import { getSeat, SEATS, seatsForPackage } from "@/lib/seats";
+import { getSeat, seatsForPackage } from "@/lib/seats";
 import {
   formatIdr,
   NIGHTS,
@@ -16,7 +16,7 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-export type ReserveStep = "identity" | "night" | "seat" | "pay";
+export type ReserveStep = "night" | "table" | "details" | "pay";
 
 export type ReservePreview = {
   step: ReserveStep;
@@ -32,8 +32,8 @@ type Props = {
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
-const STEPS: ReserveStep[] = ["identity", "night", "seat", "pay"];
-const STEP_LABELS = ["Details", "Day", "Table", "Pay"] as const;
+const STEPS: ReserveStep[] = ["night", "table", "details", "pay"];
+const STEP_LABELS = ["Day", "Table", "Details", "Pay"] as const;
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -65,7 +65,7 @@ export default function ReserveForm({
   takenSeatIds,
   onPreviewChange,
 }: Props) {
-  const [step, setStep] = useState<ReserveStep>("identity");
+  const [step, setStep] = useState<ReserveStep>("night");
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [nik, setNik] = useState("");
@@ -84,7 +84,8 @@ export default function ReserveForm({
   const seat = seatId ? getSeat(seatId) : undefined;
   const busy = pending || paying;
   const stepIndex = STEPS.indexOf(step);
-  const availableSeats = SEATS.filter(
+  const areaSeats = packageId ? seatsForPackage(packageId) : [];
+  const freeAreaSeats = areaSeats.filter(
     (item) => !takenSeatIds.includes(item.id),
   );
 
@@ -123,28 +124,37 @@ export default function ReserveForm({
     return null;
   }
 
+  function freeSeatCount(id: TablePackageId) {
+    return seatsForPackage(id).filter((item) => !takenSeatIds.includes(item.id))
+      .length;
+  }
+
   function goNext() {
     setError(null);
-    if (step === "identity") {
+    if (step === "night") {
+      setStep("table");
+      return;
+    }
+    if (step === "table") {
+      if (!packageId) {
+        setError("Please choose an area.");
+        return;
+      }
+      if (!seatId || takenSeatIds.includes(seatId)) {
+        setError(
+          freeAreaSeats.length === 0
+            ? "Every table in this area is taken. Choose another area."
+            : "Please pick a table.",
+        );
+        return;
+      }
+      setStep("details");
+      return;
+    }
+    if (step === "details") {
       const message = identityError();
       if (message) {
         setError(message);
-        return;
-      }
-      setStep("night");
-      return;
-    }
-    if (step === "night") {
-      setStep("seat");
-      return;
-    }
-    if (step === "seat") {
-      if (!seatId || !availableSeats.some((item) => item.id === seatId)) {
-        setError(
-          availableSeats.length === 0
-            ? "Every table is held for this night. Try the other night."
-            : "Please pick a table.",
-        );
         return;
       }
       setStep("pay");
@@ -153,9 +163,17 @@ export default function ReserveForm({
 
   function goBack() {
     setError(null);
-    if (step === "night") setStep("identity");
-    if (step === "seat") setStep("night");
-    if (step === "pay") setStep("seat");
+    if (step === "table") {
+      // Inside an area, step back to the area list before leaving the step.
+      if (packageId) {
+        setPackageId(null);
+        setSeatId(null);
+        return;
+      }
+      setStep("night");
+    }
+    if (step === "details") setStep("table");
+    if (step === "pay") setStep("details");
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -237,7 +255,163 @@ export default function ReserveForm({
           ))}
         </ol>
 
-        {step === "identity" ? (
+        {step === "night" ? (
+          <div className="min-w-0">
+            <p className="font-heading text-[11px] tracking-[0.32em] text-white/50">
+              Choose a night
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              {NIGHTS.map((item) => {
+                const selected = nightId === item.id;
+                const lineup = getLineup(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setNightId(item.id);
+                      setSeatId(null);
+                      setPackageId(null);
+                      setError(null);
+                    }}
+                    className={`border p-4 text-left transition-colors ${
+                      selected
+                        ? "border-white/80 bg-white/10 text-white"
+                        : "border-white/15 bg-black/30 text-white/55 hover:border-white/35"
+                    }`}
+                  >
+                    <span className="font-heading text-sm tracking-[0.16em] text-white">
+                      {item.day}
+                    </span>
+                    <span className="mt-1 block text-sm text-white/70">
+                      {item.label}
+                    </span>
+                    {lineup ? (
+                      <span className="mt-2 block text-sm text-white/45">
+                        Lineup · {lineup.name}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {step === "table" ? (
+          <div className="min-w-0">
+            <p className="font-heading text-[11px] tracking-[0.32em] text-white/50">
+              {packageId ? "Choose a table" : "Choose an area"}
+            </p>
+
+            {!packageId ? (
+              <>
+                <p className="mt-3 text-sm leading-relaxed text-white/65">
+                  Pick an area, then tap a table number. No map reading needed.
+                </p>
+                <div className="mt-4 flex flex-col gap-2">
+                  {TABLE_PACKAGES.map((pack) => {
+                    const free = freeSeatCount(pack.id);
+                    return (
+                      <button
+                        key={pack.id}
+                        type="button"
+                        disabled={free === 0}
+                        onClick={() => {
+                          setPackageId(pack.id);
+                          setSeatId(null);
+                          setError(null);
+                        }}
+                        className={`border p-4 text-left transition-colors ${
+                          free === 0
+                            ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                            : "border-white/15 bg-black/30 text-white hover:border-white/50"
+                        }`}
+                      >
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="font-heading text-sm tracking-[0.16em] text-white">
+                            {pack.name.replace(" Area", "")}
+                          </span>
+                          <span className="font-heading text-sm tracking-[0.12em] text-white">
+                            {formatIdr(pack.priceIdr)}
+                          </span>
+                        </span>
+                        <span className="mt-1 block text-xs text-white/45">
+                          {pack.furniture} · {pack.seats} pax · {pack.tickets}{" "}
+                          tickets · min. {formatIdr(pack.minSpendIdr)}
+                        </span>
+                        <span className="mt-1 block text-xs text-white/40">
+                          {free === 0
+                            ? "Fully booked for this night"
+                            : `${free} tables open · ${pack.range}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-4 text-xs text-white/40">
+                  {RESID_AREA.name} is invite-only and is not in this booking.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="mt-3 flex items-baseline justify-between gap-3">
+                  <p className="text-sm text-white/65">
+                    {table?.name} · {table?.furniture} · {table?.seats} pax
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPackageId(null);
+                      setSeatId(null);
+                      setError(null);
+                    }}
+                    className="font-heading text-[10px] tracking-[0.22em] text-white/55 underline underline-offset-4 transition-colors hover:text-white"
+                  >
+                    Change area
+                  </button>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {areaSeats.map((item) => {
+                    const taken = takenSeatIds.includes(item.id);
+                    const selected = seatId === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={taken}
+                        aria-pressed={selected}
+                        aria-label={
+                          taken ? `${item.label} — taken` : item.label
+                        }
+                        onClick={() => {
+                          setSeatId(item.id);
+                          setError(null);
+                        }}
+                        className={`min-w-12 border px-2 py-2 text-center font-heading text-[11px] tracking-[0.12em] transition-colors ${
+                          taken
+                            ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30 line-through"
+                            : selected
+                              ? "border-white bg-white text-black"
+                              : "border-white/15 bg-black/30 text-white hover:border-white/50"
+                        }`}
+                      >
+                        {item.short}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-4 text-xs text-white/40">
+                  Greyed-out numbers are already held for{" "}
+                  {night?.short ?? "this night"}.
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {step === "details" ? (
           <div className="grid gap-4">
             <label className="flex flex-col gap-2">
               <span className="font-heading text-[11px] tracking-[0.28em] text-white/50">
@@ -303,124 +477,6 @@ export default function ReserveForm({
           </div>
         ) : null}
 
-        {step === "night" ? (
-          <fieldset className="min-w-0">
-            <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a night
-            </legend>
-            <div className="mt-3 flex flex-col gap-2">
-              {NIGHTS.map((item) => {
-                const selected = nightId === item.id;
-                const lineup = getLineup(item.id);
-                return (
-                  <label
-                    key={item.id}
-                    className={`cursor-pointer border p-4 text-left transition-colors ${
-                      selected
-                        ? "border-white/80 bg-white/10 text-white"
-                        : "border-white/15 bg-black/30 text-white/55 hover:border-white/35"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="night"
-                      value={item.id}
-                      checked={selected}
-                      onChange={() => {
-                        setNightId(item.id);
-                        setSeatId(null);
-                        setPackageId(null);
-                      }}
-                      className="sr-only"
-                    />
-                    <span className="font-heading text-sm tracking-[0.16em] text-white">
-                      {item.day}
-                    </span>
-                    <span className="mt-1 block text-sm text-white/70">
-                      {item.label}
-                    </span>
-                    {lineup ? (
-                      <span className="mt-2 block text-sm text-white/45">
-                        Lineup · {lineup.name}
-                      </span>
-                    ) : null}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : null}
-
-        {step === "seat" ? (
-          <fieldset className="min-w-0">
-            <legend className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              Choose a table
-            </legend>
-            <p className="mt-3 text-sm leading-relaxed text-white/65">
-              Pick the number printed on the floor plan. Resid is invite-only.
-            </p>
-            <div className="mt-4 flex flex-col gap-5">
-              {TABLE_PACKAGES.map((pack) => {
-                const packSeats = seatsForPackage(pack.id);
-                return (
-                  <div key={pack.id}>
-                    <p className="flex items-baseline justify-between gap-3">
-                      <span className="font-heading text-sm tracking-[0.16em] text-white">
-                        {pack.name.replace(" Area", "")}
-                      </span>
-                      <span className="font-heading text-sm tracking-[0.12em] text-white">
-                        {formatIdr(pack.priceIdr)}
-                      </span>
-                    </p>
-                    <p className="mt-1 text-xs text-white/45">
-                      {pack.furniture} · {pack.seats} pax · {pack.tickets}{" "}
-                      tickets · min. {formatIdr(pack.minSpendIdr)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {packSeats.map((item) => {
-                        const taken = takenSeatIds.includes(item.id);
-                        const selected = seatId === item.id;
-                        return (
-                          <label
-                            key={item.id}
-                            className={`min-w-11 border px-2 py-2 text-center transition-colors ${
-                              taken
-                                ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
-                                : selected
-                                  ? "cursor-pointer border-white bg-white text-black"
-                                  : "cursor-pointer border-white/15 bg-black/30 text-white hover:border-white/50"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="seat"
-                              value={item.id}
-                              checked={selected}
-                              disabled={taken}
-                              onChange={() => {
-                                setSeatId(item.id);
-                                setPackageId(pack.id);
-                                setError(null);
-                              }}
-                              className="sr-only"
-                            />
-                            <span className="block font-heading text-[11px] tracking-[0.12em]">
-                              {item.short}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-xs text-white/40">
-              {RESID_AREA.name} is invite-only and is not in this booking.
-            </p>
-          </fieldset>
-        ) : null}
-
         {step === "pay" ? (
           <div className="space-y-3 text-sm text-white/65">
             <p>
@@ -465,7 +521,7 @@ export default function ReserveForm({
         ) : null}
 
         <div className="flex flex-col gap-3">
-          {step !== "identity" ? (
+          {step !== "night" ? (
             <button
               type="button"
               onClick={goBack}
@@ -481,7 +537,7 @@ export default function ReserveForm({
             disabled={
               busy ||
               (step === "pay" && !enabled) ||
-              (step === "seat" && !seatId)
+              (step === "table" && !seatId)
             }
             className="btn-press inline-flex items-center justify-center border border-white/80 bg-white px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black sm:text-xs"
           >
