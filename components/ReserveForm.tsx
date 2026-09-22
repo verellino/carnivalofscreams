@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 
 import "@/types/doku-checkout";
 import { createReservation } from "@/app/actions/reserve";
-import { getLineup } from "@/lib/lineup";
 import { getSeat, seatsForPackage } from "@/lib/seats";
 import {
   formatIdr,
@@ -16,7 +15,7 @@ import {
   type TablePackageId,
 } from "@/lib/tables";
 
-export type ReserveStep = "night" | "table" | "details" | "pay";
+export type ReserveStep = "night" | "area" | "table" | "details" | "pay";
 
 export type ReservePreview = {
   step: ReserveStep;
@@ -32,8 +31,8 @@ type Props = {
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
-const STEPS: ReserveStep[] = ["night", "table", "details", "pay"];
-const STEP_LABELS = ["Day", "Table", "Details", "Pay"] as const;
+const STEPS: ReserveStep[] = ["night", "area", "table", "details", "pay"];
+const STEP_LABELS = ["Day", "Area", "Table", "Details", "Pay"] as const;
 
 function waitForJokulCheckout() {
   return new Promise<NonNullable<Window["loadJokulCheckout"]>>(
@@ -132,14 +131,18 @@ export default function ReserveForm({
   function goNext() {
     setError(null);
     if (step === "night") {
-      setStep("table");
+      setStep("area");
       return;
     }
-    if (step === "table") {
+    if (step === "area") {
       if (!packageId) {
         setError("Please choose an area.");
         return;
       }
+      setStep("table");
+      return;
+    }
+    if (step === "table") {
       if (!seatId || takenSeatIds.includes(seatId)) {
         setError(
           freeAreaSeats.length === 0
@@ -163,15 +166,8 @@ export default function ReserveForm({
 
   function goBack() {
     setError(null);
-    if (step === "table") {
-      // Inside an area, step back to the area list before leaving the step.
-      if (packageId) {
-        setPackageId(null);
-        setSeatId(null);
-        return;
-      }
-      setStep("night");
-    }
+    if (step === "area") setStep("night");
+    if (step === "table") setStep("area");
     if (step === "details") setStep("table");
     if (step === "pay") setStep("details");
   }
@@ -238,7 +234,7 @@ export default function ReserveForm({
       ) : null}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
-        <ol className="grid grid-cols-4 gap-1 text-center">
+        <ol className="grid grid-cols-5 gap-1 text-center">
           {STEPS.map((item, index) => (
             <li
               key={item}
@@ -263,7 +259,6 @@ export default function ReserveForm({
             <div className="mt-3 flex flex-col gap-2">
               {NIGHTS.map((item) => {
                 const selected = nightId === item.id;
-                const lineup = getLineup(item.id);
                 return (
                   <button
                     key={item.id}
@@ -287,11 +282,6 @@ export default function ReserveForm({
                     <span className="mt-1 block text-sm text-white/70">
                       {item.label}
                     </span>
-                    {lineup ? (
-                      <span className="mt-2 block text-sm text-white/45">
-                        Lineup · {lineup.name}
-                      </span>
-                    ) : null}
                   </button>
                 );
               })}
@@ -299,115 +289,133 @@ export default function ReserveForm({
           </div>
         ) : null}
 
-        {step === "table" ? (
+        {step === "area" ? (
           <div className="min-w-0">
             <p className="font-heading text-[11px] tracking-[0.32em] text-white/50">
-              {packageId ? "Choose a table" : "Choose an area"}
+              Choose an area
             </p>
-
-            {!packageId ? (
-              <>
-                <p className="mt-3 text-sm leading-relaxed text-white/65">
-                  Pick an area, then tap a table number. No map reading needed.
-                </p>
-                <div className="mt-4 flex flex-col gap-2">
-                  {TABLE_PACKAGES.map((pack) => {
-                    const free = freeSeatCount(pack.id);
-                    return (
-                      <button
-                        key={pack.id}
-                        type="button"
-                        disabled={free === 0}
-                        onClick={() => {
-                          setPackageId(pack.id);
-                          setSeatId(null);
-                          setError(null);
-                        }}
-                        className={`border p-4 text-left transition-colors ${
-                          free === 0
-                            ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
-                            : "border-white/15 bg-black/30 text-white hover:border-white/50"
-                        }`}
-                      >
-                        <span className="flex items-baseline justify-between gap-3">
-                          <span className="font-heading text-sm tracking-[0.16em] text-white">
-                            {pack.name.replace(" Area", "")}
-                          </span>
-                          <span className="font-heading text-sm tracking-[0.12em] text-white">
-                            {formatIdr(pack.priceIdr)}
-                          </span>
-                        </span>
-                        <span className="mt-1 block text-xs text-white/45">
-                          {pack.furniture} · {pack.seats} pax · {pack.tickets}{" "}
-                          tickets · min. {formatIdr(pack.minSpendIdr)}
-                        </span>
-                        <span className="mt-1 block text-xs text-white/40">
-                          {free === 0
-                            ? "Fully booked for this night"
-                            : `${free} tables open · ${pack.range}`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-4 text-xs text-white/40">
-                  {RESID_AREA.name} is invite-only and is not in this booking.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="mt-3 flex items-baseline justify-between gap-3">
-                  <p className="text-sm text-white/65">
-                    {table?.name} · {table?.furniture} · {table?.seats} pax
-                  </p>
+            <p className="mt-3 text-sm leading-relaxed text-white/65">
+              Tap an area to see it lit up on the floor plan. Table numbers come
+              next.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              {TABLE_PACKAGES.map((pack) => {
+                const free = freeSeatCount(pack.id);
+                const selected = packageId === pack.id;
+                return (
                   <button
+                    key={pack.id}
                     type="button"
+                    disabled={free === 0}
+                    aria-pressed={selected}
                     onClick={() => {
-                      setPackageId(null);
+                      setPackageId(pack.id);
                       setSeatId(null);
                       setError(null);
                     }}
-                    className="font-heading text-[10px] tracking-[0.22em] text-white/55 underline underline-offset-4 transition-colors hover:text-white"
+                    className={`border p-4 text-left transition-colors ${
+                      free === 0
+                        ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30"
+                        : selected
+                          ? "border-gold-bright bg-white/10 text-white"
+                          : "border-white/15 bg-black/30 text-white hover:border-white/50"
+                    }`}
                   >
-                    Change area
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="font-heading text-sm tracking-[0.16em] text-white">
+                        {pack.name.replace(" Area", "")}
+                      </span>
+                      <span className="font-heading text-sm tracking-[0.12em] text-white">
+                        {formatIdr(pack.priceIdr)}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs text-white/45">
+                      {pack.furniture} · {pack.seats} pax · {pack.tickets}{" "}
+                      tickets · min. {formatIdr(pack.minSpendIdr)}
+                    </span>
+                    <span className="mt-1 block text-xs text-white/40">
+                      {free === 0
+                        ? "Fully booked for this night"
+                        : `${free} tables open · ${pack.range}`}
+                    </span>
                   </button>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {areaSeats.map((item) => {
-                    const taken = takenSeatIds.includes(item.id);
-                    const selected = seatId === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled={taken}
-                        aria-pressed={selected}
-                        aria-label={
-                          taken ? `${item.label} — taken` : item.label
-                        }
-                        onClick={() => {
-                          setSeatId(item.id);
-                          setError(null);
-                        }}
-                        className={`min-w-12 border px-2 py-2 text-center font-heading text-[11px] tracking-[0.12em] transition-colors ${
-                          taken
-                            ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30 line-through"
-                            : selected
-                              ? "border-white bg-white text-black"
-                              : "border-white/15 bg-black/30 text-white hover:border-white/50"
-                        }`}
-                      >
-                        {item.short}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-4 text-xs text-white/40">
-                  Greyed-out numbers are already held for{" "}
-                  {night?.short ?? "this night"}.
-                </p>
-              </>
-            )}
+                );
+              })}
+            </div>
+            {table ? (
+              <p className="mt-4 border border-gold-bright/40 bg-white/5 p-3 text-sm text-white">
+                <span className="font-heading text-[11px] tracking-[0.22em] text-gold-bright">
+                  Selected
+                </span>{" "}
+                {table.name} · {table.furniture} · {table.seats} pax — lit up on
+                the floor plan.
+              </p>
+            ) : null}
+            <p className="mt-4 text-xs text-white/40">
+              {RESID_AREA.name} is invite-only and is not in this booking.
+            </p>
+          </div>
+        ) : null}
+
+        {step === "table" ? (
+          <div className="min-w-0">
+            <p className="font-heading text-[11px] tracking-[0.32em] text-white/50">
+              Choose a table
+            </p>
+            <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm text-white">
+                <span className="font-heading tracking-[0.16em] text-gold-bright">
+                  {table?.name}
+                </span>
+                <span className="text-white/55">
+                  {" "}
+                  · {table?.furniture} · {table?.seats} pax ·{" "}
+                  {table ? formatIdr(table.priceIdr) : ""}
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSeatId(null);
+                  setStep("area");
+                }}
+                className="font-heading text-[10px] tracking-[0.22em] text-white/55 underline underline-offset-4 transition-colors hover:text-white"
+              >
+                Change area
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {areaSeats.map((item) => {
+                const taken = takenSeatIds.includes(item.id);
+                const selected = seatId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={taken}
+                    aria-pressed={selected}
+                    aria-label={taken ? `${item.label} — taken` : item.label}
+                    onClick={() => {
+                      setSeatId(item.id);
+                      setError(null);
+                    }}
+                    className={`min-w-12 border px-2 py-2 text-center font-heading text-[11px] tracking-[0.12em] transition-colors ${
+                      taken
+                        ? "cursor-not-allowed border-white/10 bg-black/20 text-white/30 line-through"
+                        : selected
+                          ? "border-white bg-white text-black"
+                          : "border-white/15 bg-black/30 text-white hover:border-white/50"
+                    }`}
+                  >
+                    {item.short}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-xs text-white/40">
+              Greyed-out numbers are already held for{" "}
+              {night?.short ?? "this night"}.
+            </p>
           </div>
         ) : null}
 
@@ -537,6 +545,7 @@ export default function ReserveForm({
             disabled={
               busy ||
               (step === "pay" && !enabled) ||
+              (step === "area" && !packageId) ||
               (step === "table" && !seatId)
             }
             className="btn-press inline-flex items-center justify-center border border-white/80 bg-white px-5 py-3 font-heading text-[11px] tracking-[0.28em] text-black transition-colors duration-200 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-black sm:text-xs"

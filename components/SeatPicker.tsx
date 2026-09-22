@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { selectReservationSeat } from "@/app/actions/reserve";
 import SeatMap from "@/components/SeatMap";
 import { seatsForPackage } from "@/lib/seats";
-import type { TablePackageId } from "@/lib/tables";
+import { getTablePackage, type TablePackageId } from "@/lib/tables";
 
 type Props = {
   orderId: string;
@@ -24,6 +24,7 @@ export default function SeatPicker({
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seats = seatsForPackage(packageId);
+  const area = getTablePackage(packageId);
 
   function onConfirm() {
     if (!selectedSeatId) {
@@ -47,6 +48,11 @@ export default function SeatPicker({
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
+      <SeatMap highlightAreaId={packageId} highlightLabel={area?.name} />
+      <p className="mt-3 mb-8 text-sm text-white/45">
+        {area?.name} is lit up on the plan. Confirm your table below.
+      </p>
+
       <div className="flex w-full flex-wrap justify-center gap-1.5">
         {seats.map((item) => {
           const taken = takenSeatIds.includes(item.id);
@@ -99,18 +105,6 @@ export default function SeatPicker({
       >
         {pending ? "Holding table…" : "Confirm table"}
       </button>
-
-      <details className="mt-10 w-full border border-white/15 bg-black/30 text-left">
-        <summary className="cursor-pointer list-none px-4 py-3 font-heading text-[11px] tracking-[0.28em] text-white/55 transition-colors hover:text-white">
-          View floor plan
-        </summary>
-        <div className="px-4 pb-4">
-          <SeatMap />
-          <p className="mt-3 text-sm text-white/45">
-            Reference only. Confirm your table with the buttons above.
-          </p>
-        </div>
-      </details>
     </div>
   );
 }

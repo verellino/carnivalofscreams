@@ -44,7 +44,7 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
   }, [preview.nightId, preview.step]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-heading text-[11px] tracking-[0.42em] text-white/55">
@@ -54,34 +54,39 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
             Reserve
           </h1>
         </div>
-        {selectedSeat && selectedArea ? (
-          <p className="font-heading text-sm tracking-[0.18em] text-white">
-            {selectedSeat.short}
-            <span className="text-white/45"> · {selectedArea.name}</span>
+        {selectedArea ? (
+          <p className="font-heading text-sm tracking-[0.18em] text-gold-bright">
+            {selectedSeat ? `${selectedSeat.short} · ` : ""}
+            {selectedArea.name}
           </p>
         ) : null}
       </header>
 
-      <div className="pass-panel p-5 sm:p-6">
-        <ReserveForm
-          enabled={enabled}
-          checkoutJsUrl={checkoutJsUrl}
-          takenSeatIds={takenSeatIds}
-          onPreviewChange={onPreviewChange}
-        />
-      </div>
-
-      <details className="mt-6 border border-white/15 bg-black/30">
-        <summary className="cursor-pointer list-none px-4 py-3 font-heading text-[11px] tracking-[0.28em] text-white/55 transition-colors hover:text-white">
-          View floor plan
-        </summary>
-        <div className="px-4 pb-4">
-          <SeatMap />
-          <p className="mt-3 text-sm text-white/45">
-            Reference only. Every table is booked from the buttons above.
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        {/* Sticky as a flex item, so the plan stays in view on phones too. */}
+        <section className="sticky top-24 z-20 min-w-0 flex-1 self-start lg:order-last lg:top-28">
+          <SeatMap
+            highlightAreaId={preview.packageId}
+            highlightLabel={selectedArea?.name}
+          />
+          <p className="bg-ink/95 px-3 py-2 text-sm text-white/45 backdrop-blur-sm">
+            {selectedArea
+              ? `${selectedArea.name} is lit up on the plan. Tables are booked from the buttons, not the map.`
+              : "Floor plan of the venue. Choose your area in the form and it lights up here."}
           </p>
-        </div>
-      </details>
+        </section>
+
+        <aside className="w-full shrink-0 lg:w-[28rem]">
+          <div className="pass-panel p-5 sm:p-6">
+            <ReserveForm
+              enabled={enabled}
+              checkoutJsUrl={checkoutJsUrl}
+              takenSeatIds={takenSeatIds}
+              onPreviewChange={onPreviewChange}
+            />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
