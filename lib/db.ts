@@ -1,38 +1,22 @@
-import postgres from "postgres";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-function connectionString() {
-  const pooled = process.env.SUPABASE_DB_POOLER_URL;
-  if (pooled) return pooled;
-
-  const direct =
-    process.env.SUPABASE_DB_DIRECT_CONNECTION ??
-    process.env.SUPABASE_DB_URL ??
-    process.env.DATABASE_URL;
-  if (direct) return direct;
-
-  const password = process.env.SUPABASE_DB_PASSWORD;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!password || !supabaseUrl) {
-    throw new Error("Supabase database connection is not configured");
-  }
-
-  const ref = new URL(supabaseUrl).hostname.split(".")[0];
-  return `postgresql://postgres:${encodeURIComponent(password)}@db.${ref}.supabase.co:5432/postgres`;
-}
-
-const globalForSql = globalThis as unknown as {
-  carnivalSql?: ReturnType<typeof postgres>;
+const globalForDb = globalThis as unknown as {
+  carnivalDb?: SupabaseClient;
 };
 
-export function getSql() {
-  if (!globalForSql.carnivalSql) {
-    globalForSql.carnivalSql = postgres(connectionString(), {
-      ssl: "require",
-      max: 1,
-      prepare: false,
-      idle_timeout: 20,
-      connect_timeout: 10,
+// Server-only client. The secret key bypasses RLS; never import this from a
+// client component.
+export function getDb() {
+  if (!globalForDb.carnivalDb) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key =
+      process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error("Supabase is not configured");
+    }
+    globalForDb.carnivalDb = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
   }
-  return globalForSql.carnivalSql;
+  return globalForDb.carnivalDb;
 }

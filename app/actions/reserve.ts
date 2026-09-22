@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 
 import { insertAuditLogSafe, requestMeta } from "@/lib/audit";
+import { publicMessage } from "@/lib/errors";
 import {
   CHECKOUT_PAYMENT_DUE_MINUTES,
   createCheckoutPayment,
@@ -177,9 +178,11 @@ export async function createReservation(
         orderId,
       );
     }
-    const message =
-      error instanceof Error ? error.message : "Could not hold that table.";
-    return respond({ ok: false, error: message }, orderId);
+    console.error("[reserve] failed to hold table", error);
+    return respond(
+      { ok: false, error: publicMessage(error, "Could not hold that table.") },
+      orderId,
+    );
   }
 
   try {
@@ -204,9 +207,11 @@ export async function createReservation(
     );
   } catch (error) {
     await expireReservationHoldSafe(orderId);
-    const message =
-      error instanceof Error ? error.message : "Could not start payment.";
-    return respond({ ok: false, error: message }, orderId);
+    console.error("[reserve] failed to start payment", error);
+    return respond(
+      { ok: false, error: publicMessage(error, "Could not start payment.") },
+      orderId,
+    );
   }
 }
 
@@ -249,8 +254,8 @@ export async function selectReservationSeat(
     });
     return { ok: true };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not hold that table.";
+    console.error("[reserve] failed to claim seat", error);
+    const detail = error instanceof Error ? error.message : String(error);
     const latest = await getReservationSafe(orderId);
     await insertAuditLogSafe({
       event: "reservation.seat.error",
@@ -259,9 +264,12 @@ export async function selectReservationSeat(
       path: "/reserve/confirmed",
       ip: meta.ip,
       userAgent: meta.userAgent,
-      payload: { error: message, seatId },
+      payload: { error: detail, seatId },
     });
     if (latest?.seatId === seatId) return { ok: true };
-    return { ok: false, error: message };
+    return {
+      ok: false,
+      error: publicMessage(error, "Could not hold that table."),
+    };
   }
 }

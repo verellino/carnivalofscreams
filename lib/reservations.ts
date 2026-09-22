@@ -1,4 +1,5 @@
-import { getSql } from "./db";
+import { getDb } from "./db";
+import { PublicError } from "./errors";
 import { getSeat } from "./seats";
 import { asPackageId, type NightId, type TablePackageId } from "./tables";
 
@@ -42,12 +43,12 @@ type ReservationRow = {
   payment_token: string | null;
   channel_id: string | null;
   transaction_status: string | null;
-  paid_at: Date | null;
+  paid_at: string | null;
   seat_id: string | null;
-  expires_at: Date | null;
+  expires_at: string | null;
   whatsapp_message_id: string | null;
-  whatsapp_sent_at: Date | null;
-  invoice_email_sent_at: Date | null;
+  whatsapp_sent_at: string | null;
+  invoice_email_sent_at: string | null;
 };
 
 function asNightId(value: string): NightId | undefined {
@@ -55,6 +56,17 @@ function asNightId(value: string): NightId | undefined {
   return undefined;
 }
 
+
+function toDate(value: string | null) {
+  return value ? new Date(value) : null;
+}
+
+const RESERVATION_COLUMNS =
+  "order_id, name, nik, email, phone, night_id, package_id, party_size, notes, amount_idr, status, payment_url, payment_token, channel_id, transaction_status, paid_at, seat_id, expires_at, whatsapp_message_id, whatsapp_sent_at, invoice_email_sent_at";
+
+function nowIso() {
+  return new Date().toISOString();
+}
 
 function mapReservation(row: ReservationRow): ReservationRecord | null {
   const nightId = asNightId(row.night_id);
@@ -77,12 +89,12 @@ function mapReservation(row: ReservationRow): ReservationRecord | null {
     paymentToken: row.payment_token,
     channelId: row.channel_id,
     transactionStatus: row.transaction_status,
-    paidAt: row.paid_at,
+    paidAt: toDate(row.paid_at),
     seatId: row.seat_id,
-    expiresAt: row.expires_at,
+    expiresAt: toDate(row.expires_at),
     whatsappMessageId: row.whatsapp_message_id,
-    whatsappSentAt: row.whatsapp_sent_at,
-    invoiceEmailSentAt: row.invoice_email_sent_at,
+    whatsappSentAt: toDate(row.whatsapp_sent_at),
+    invoiceEmailSentAt: toDate(row.invoice_email_sent_at),
   };
 }
 
@@ -114,42 +126,26 @@ export async function insertReservation(entry: {
   seatId?: string | null;
   expiresAt?: Date | null;
 }) {
-  const sql = getSql();
-  await sql`
-    insert into public.reservations (
-      order_id,
-      name,
-      nik,
-      email,
-      phone,
-      night_id,
-      package_id,
-      party_size,
-      notes,
-      amount_idr,
-      payment_url,
-      payment_token,
-      seat_id,
-      expires_at,
-      status
-    ) values (
-      ${entry.orderId},
-      ${entry.name},
-      ${entry.nik},
-      ${entry.email},
-      ${entry.phone},
-      ${entry.nightId},
-      ${entry.packageId},
-      ${entry.partySize},
-      ${entry.notes ?? null},
-      ${entry.amountIdr},
-      ${entry.paymentUrl ?? null},
-      ${entry.paymentToken ?? null},
-      ${entry.seatId ?? null},
-      ${entry.expiresAt ?? null},
-      ${"pending"}
-    )
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .insert({
+      order_id: entry.orderId,
+      name: entry.name,
+      nik: entry.nik,
+      email: entry.email,
+      phone: entry.phone,
+      night_id: entry.nightId,
+      package_id: entry.packageId,
+      party_size: entry.partySize,
+      notes: entry.notes ?? null,
+      amount_idr: entry.amountIdr,
+      payment_url: entry.paymentUrl ?? null,
+      payment_token: entry.paymentToken ?? null,
+      seat_id: entry.seatId ?? null,
+      expires_at: entry.expiresAt?.toISOString() ?? null,
+      status: "pending",
+    });
+  if (error) throw error;
 }
 
 export async function insertReservationSafe(
@@ -170,49 +166,25 @@ export async function updateReservationCheckout(
     expiresAt?: Date | null;
   },
 ) {
-  const sql = getSql();
-  await sql`
-    update public.reservations
-    set
-      payment_url = ${entry.paymentUrl},
-      payment_token = ${entry.paymentToken},
-      expires_at = coalesce(${entry.expiresAt ?? null}, expires_at)
-    where order_id = ${orderId}
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .update({
+      payment_url: entry.paymentUrl,
+      payment_token: entry.paymentToken,
+      ...(entry.expiresAt ? { expires_at: entry.expiresAt.toISOString() } : {}),
+    })
+    .eq("order_id", orderId);
+  if (error) throw error;
 }
 
 export async function getReservation(orderId: string) {
-  const sql = getSql();
-  const rows = await sql<ReservationRow[]>`
-    select
-      order_id,
-      name,
-      nik,
-      email,
-      phone,
-      night_id,
-      package_id,
-      party_size,
-      notes,
-      amount_idr,
-      status,
-      payment_url,
-      payment_token,
-      channel_id,
-      transaction_status,
-      paid_at,
-      seat_id,
-      expires_at,
-      whatsapp_message_id,
-      whatsapp_sent_at,
-      invoice_email_sent_at
-    from public.reservations
-    where order_id = ${orderId}
-    limit 1
-  `;
-
-  const row = rows[0];
-  return row ? mapReservation(row) : null;
+  const { data, error } = await getDb()
+    .from("reservations")
+    .select(RESERVATION_COLUMNS)
+    .eq("order_id", orderId)
+    .maybeSingle<ReservationRow>();
+  if (error) throw error;
+  return data ? mapReservation(data) : null;
 }
 
 export async function getReservationSafe(orderId: string) {
@@ -225,14 +197,13 @@ export async function getReservationSafe(orderId: string) {
 }
 
 export async function releaseExpiredHolds() {
-  const sql = getSql();
-  await sql`
-    update public.reservations
-    set status = ${"expired"}
-    where status = ${"pending"}
-      and expires_at is not null
-      and expires_at <= timezone('utc', now())
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .update({ status: "expired" })
+    .eq("status", "pending")
+    .not("expires_at", "is", null)
+    .lte("expires_at", nowIso());
+  if (error) throw error;
 }
 
 export async function releaseExpiredHoldsSafe() {
@@ -247,25 +218,16 @@ export async function expireReservationHold(
   orderId: string,
   transactionStatus?: string | null,
 ) {
-  const sql = getSql();
-  if (transactionStatus) {
-    await sql`
-      update public.reservations
-      set
-        status = ${"expired"},
-        transaction_status = ${transactionStatus}
-      where order_id = ${orderId}
-        and status = ${"pending"}
-    `;
-    return;
-  }
-
-  await sql`
-    update public.reservations
-    set status = ${"expired"}
-    where order_id = ${orderId}
-      and status = ${"pending"}
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .update(
+      transactionStatus
+        ? { status: "expired", transaction_status: transactionStatus }
+        : { status: "expired" },
+    )
+    .eq("order_id", orderId)
+    .eq("status", "pending");
+  if (error) throw error;
 }
 
 export async function expireReservationHoldSafe(
@@ -281,21 +243,16 @@ export async function expireReservationHoldSafe(
 
 export async function listTakenSeatIds(nightId: NightId) {
   await releaseExpiredHolds();
-  const sql = getSql();
-  const rows = await sql<{ seat_id: string }[]>`
-    select seat_id
-    from public.reservations
-    where night_id = ${nightId}
-      and seat_id is not null
-      and (
-        status = ${"paid"}
-        or (
-          status = ${"pending"}
-          and (expires_at is null or expires_at > timezone('utc', now()))
-        )
-      )
-  `;
-  return rows.map((row) => row.seat_id);
+  const { data, error } = await getDb()
+    .from("reservations")
+    .select("seat_id")
+    .eq("night_id", nightId)
+    .not("seat_id", "is", null)
+    .or(
+      `status.eq.paid,and(status.eq.pending,or(expires_at.is.null,expires_at.gt.${nowIso()}))`,
+    );
+  if (error) throw error;
+  return (data as { seat_id: string }[]).map((row) => row.seat_id);
 }
 
 export async function listTakenSeatIdsSafe(nightId: NightId) {
@@ -312,42 +269,34 @@ export async function markReservationPaid(entry: {
   transactionStatus: string;
   channelId?: string | null;
 }) {
-  const sql = getSql();
-  const rows = await sql<ReservationRow[]>`
-    update public.reservations
-    set
-      status = ${"paid"},
-      transaction_status = ${entry.transactionStatus},
-      channel_id = ${entry.channelId ?? null},
-      paid_at = coalesce(paid_at, timezone('utc', now()))
-    where order_id = ${entry.orderId}
-      and status in (${"pending"}, ${"paid"})
-    returning
-      order_id,
-      name,
-      nik,
-      email,
-      phone,
-      night_id,
-      package_id,
-      party_size,
-      notes,
-      amount_idr,
-      status,
-      payment_url,
-      payment_token,
-      channel_id,
-      transaction_status,
-      paid_at,
-      seat_id,
-      expires_at,
-      whatsapp_message_id,
-      whatsapp_sent_at,
-      invoice_email_sent_at
-  `;
+  const db = getDb();
+  const { data, error } = await db
+    .from("reservations")
+    .update({
+      status: "paid",
+      transaction_status: entry.transactionStatus,
+      channel_id: entry.channelId ?? null,
+    })
+    .eq("order_id", entry.orderId)
+    .in("status", ["pending", "paid"])
+    .select(RESERVATION_COLUMNS)
+    .maybeSingle<ReservationRow>();
+  if (error) throw error;
+  if (!data) return null;
 
-  const row = rows[0];
-  return row ? mapReservation(row) : null;
+  // Keep the first paid_at when the notification is delivered twice.
+  if (!data.paid_at) {
+    const stamped = await db
+      .from("reservations")
+      .update({ paid_at: nowIso() })
+      .eq("order_id", entry.orderId)
+      .is("paid_at", null)
+      .select(RESERVATION_COLUMNS)
+      .maybeSingle<ReservationRow>();
+    if (stamped.error) throw stamped.error;
+    if (stamped.data) return mapReservation(stamped.data);
+  }
+  return mapReservation(data);
 }
 
 export async function markReservationPaidSafe(
@@ -364,12 +313,12 @@ export async function markReservationPaidSafe(
 export async function claimReservationSeat(orderId: string, seatId: string) {
   const reservation = await getReservation(orderId);
   if (!reservation || reservation.status !== "paid") {
-    throw new Error("Payment is not confirmed yet.");
+    throw new PublicError("Payment is not confirmed yet.");
   }
 
   const seat = getSeat(seatId);
   if (!seat || seat.packageId !== reservation.packageId) {
-    throw new Error("That table is not in the area you paid for.");
+    throw new PublicError("That table is not in the area you paid for.");
   }
 
   if (reservation.seatId) {
@@ -378,60 +327,32 @@ export async function claimReservationSeat(orderId: string, seatId: string) {
 
   await releaseExpiredHolds();
 
-  const sql = getSql();
-  try {
-    const rows = await sql<ReservationRow[]>`
-      update public.reservations
-      set seat_id = ${seatId}
-      where order_id = ${orderId}
-        and status = ${"paid"}
-        and seat_id is null
-      returning
-        order_id,
-        name,
-        nik,
-        email,
-        phone,
-        night_id,
-        package_id,
-        party_size,
-        notes,
-        amount_idr,
-        status,
-        payment_url,
-        payment_token,
-        channel_id,
-        transaction_status,
-        paid_at,
-        seat_id,
-        expires_at,
-        whatsapp_message_id,
-        whatsapp_sent_at,
-        invoice_email_sent_at
-    `;
-
-    const row = rows[0];
-    if (!row) {
-      throw new Error("That table was just taken. Pick another.");
-    }
-    return mapReservation(row);
-  } catch (error) {
+  const { data, error } = await getDb()
+    .from("reservations")
+    .update({ seat_id: seatId })
+    .eq("order_id", orderId)
+    .eq("status", "paid")
+    .is("seat_id", null)
+    .select(RESERVATION_COLUMNS)
+    .maybeSingle<ReservationRow>();
+  if (error) {
     if (isUniqueViolation(error)) {
-      throw new Error("That table was just taken. Pick another.");
+      throw new PublicError("That table was just taken. Pick another.");
     }
     throw error;
   }
+  if (!data) {
+    throw new PublicError("That table was just taken. Pick another.");
+  }
+  return mapReservation(data);
 }
 
 export async function markWhatsAppSent(orderId: string, messageId: string) {
-  const sql = getSql();
-  await sql`
-    update public.reservations
-    set
-      whatsapp_message_id = ${messageId},
-      whatsapp_sent_at = timezone('utc', now())
-    where order_id = ${orderId}
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .update({ whatsapp_message_id: messageId, whatsapp_sent_at: nowIso() })
+    .eq("order_id", orderId);
+  if (error) throw error;
 }
 
 export async function markWhatsAppSentSafe(orderId: string, messageId: string) {
@@ -443,12 +364,11 @@ export async function markWhatsAppSentSafe(orderId: string, messageId: string) {
 }
 
 export async function markInvoiceEmailSent(orderId: string) {
-  const sql = getSql();
-  await sql`
-    update public.reservations
-    set invoice_email_sent_at = timezone('utc', now())
-    where order_id = ${orderId}
-  `;
+  const { error } = await getDb()
+    .from("reservations")
+    .update({ invoice_email_sent_at: nowIso() })
+    .eq("order_id", orderId);
+  if (error) throw error;
 }
 
 export async function markInvoiceEmailSentSafe(orderId: string) {

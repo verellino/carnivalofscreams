@@ -1,8 +1,6 @@
 import { headers } from "next/headers";
 
-import postgres from "postgres";
-
-import { getSql } from "./db";
+import { getDb } from "./db";
 import { readDokuStatus } from "./doku";
 
 export type AuditEvent = {
@@ -54,25 +52,21 @@ export async function requestMeta() {
   };
 }
 
-function toJson(value: unknown): postgres.JSONValue {
-  return JSON.parse(JSON.stringify(value ?? {})) as postgres.JSONValue;
+function toJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value ?? {})) as unknown;
 }
 
 export async function insertAuditLog(entry: AuditEvent) {
-  const sql = getSql();
-  await sql`
-    insert into public.audit_logs (
-      event, order_id, method, path, ip, user_agent, payload
-    ) values (
-      ${entry.event},
-      ${entry.orderId ?? null},
-      ${entry.method ?? null},
-      ${entry.path ?? null},
-      ${entry.ip ?? null},
-      ${entry.userAgent ?? null},
-      ${sql.json(toJson(entry.payload))}
-    )
-  `;
+  const { error } = await getDb().from("audit_logs").insert({
+    event: entry.event,
+    order_id: entry.orderId ?? null,
+    method: entry.method ?? null,
+    path: entry.path ?? null,
+    ip: entry.ip ?? null,
+    user_agent: entry.userAgent ?? null,
+    payload: toJson(entry.payload),
+  });
+  if (error) throw error;
 }
 
 export async function insertAuditLogSafe(entry: AuditEvent) {
@@ -84,36 +78,21 @@ export async function insertAuditLogSafe(entry: AuditEvent) {
 }
 
 export async function insertDokuCallback(entry: DokuCallbackEvent) {
-  const sql = getSql();
-  await sql`
-    insert into public.doku_callbacks (
-      source,
-      event,
-      order_id,
-      transaction_id,
-      transaction_status,
-      status_code,
-      payment_type,
-      signature_valid,
-      ip,
-      user_agent,
-      headers,
-      payload
-    ) values (
-      ${entry.source},
-      ${entry.event ?? null},
-      ${entry.orderId ?? null},
-      ${entry.transactionId ?? null},
-      ${entry.transactionStatus ?? null},
-      ${entry.statusCode ?? null},
-      ${entry.paymentType ?? null},
-      ${entry.signatureValid ?? null},
-      ${entry.ip ?? null},
-      ${entry.userAgent ?? null},
-      ${entry.headers == null ? null : sql.json(toJson(entry.headers))},
-      ${sql.json(toJson(entry.payload))}
-    )
-  `;
+  const { error } = await getDb().from("doku_callbacks").insert({
+    source: entry.source,
+    event: entry.event ?? null,
+    order_id: entry.orderId ?? null,
+    transaction_id: entry.transactionId ?? null,
+    transaction_status: entry.transactionStatus ?? null,
+    status_code: entry.statusCode ?? null,
+    payment_type: entry.paymentType ?? null,
+    signature_valid: entry.signatureValid ?? null,
+    ip: entry.ip ?? null,
+    user_agent: entry.userAgent ?? null,
+    headers: entry.headers == null ? null : toJson(entry.headers),
+    payload: toJson(entry.payload),
+  });
+  if (error) throw error;
 }
 
 export async function insertDokuCallbackSafe(entry: DokuCallbackEvent) {
