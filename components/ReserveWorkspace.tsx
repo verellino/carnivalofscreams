@@ -63,13 +63,14 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
       </header>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        {/* Sticky as a flex item, so the plan stays in view on phones too. */}
-        <section className="sticky top-24 z-20 min-w-0 flex-1 self-start lg:order-last lg:top-28">
+        {/* Sticky only in the two-column layout; in one column it would
+            pin over the form. */}
+        <section className="min-w-0 flex-1 lg:order-last lg:sticky lg:top-28 lg:self-start">
           <SeatMap
             highlightAreaId={preview.packageId}
             highlightLabel={selectedArea?.name}
           />
-          <p className="bg-ink/95 px-3 py-2 text-sm text-white/45 backdrop-blur-sm">
+          <p className="mt-3 text-sm text-white/45">
             {selectedArea
               ? `${selectedArea.name} is lit up on the plan. Tables are booked from the buttons, not the map.`
               : "Floor plan of the venue. Choose your area in the form and it lights up here."}
