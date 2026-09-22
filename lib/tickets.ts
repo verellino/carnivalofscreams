@@ -52,6 +52,6 @@ export const PASSES: Pass[] = [
   // },
 ];
 
-/** Currently available pass — used for nav deep-links into the tickets section. */
+/** Currently available pass, used for nav deep-links into the tickets section. */
 export const ACTIVE_PASS =
   PASSES.find((pass) => pass.status === "on-sale") ?? PASSES[0];

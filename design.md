@@ -1,4 +1,4 @@
-# Carnaval of Screams — The Arrival
+# Carnaval of Screams: The Arrival
 
 Campaign visual language for the 2026 site. Treat new UI as a continuation of the *The Arrival* key art: a lunar night, a planet overhead, skeletal towers, and white serif type in open dark space.
 
@@ -10,7 +10,7 @@ Be there before the story unfolds.
 
 The site should feel like you have already landed. Cold air, distant structures, a sky that is still turning. Premium, quiet, cinematic. Halloween is the occasion; the world is science-fiction arrival, not orange-and-purple fairground.
 
-Reference: the *The Arrival* poster (Carnaval of Screams lockup, custom metallic wordmark, Trajan-like tagline, Artatix as official ticketing partner). The hero video and `stargate-poster.webp` are the same world — keep using them.
+Reference: the *The Arrival* poster (Carnaval of Screams lockup, custom metallic wordmark, Trajan-like tagline, Artatix as official ticketing partner). The hero video and `stargate-poster.webp` are the same world. Keep using them.
 
 ## Do
 
@@ -47,7 +47,7 @@ Reference: the *The Arrival* poster (Carnaval of Screams lockup, custom metallic
 | Glass | `rgba(4, 7, 14, 0.52)` + `backdrop-filter: blur(18px)` | Pass panels, overlays |
 | Hairline | `rgba(255, 255, 255, 0.12–0.35)` | Panel borders, title rules |
 | Moonlight | `rgba(70, 100, 150, 0.18)` | Cool wash under landscape, never a fill |
-| Signal | `#c4453a` + soft glow | Sold out / alert only — a 6px dot, not a banner |
+| Signal | `#c4453a` + soft glow | Sold out / alert only. A 6px dot, not a banner |
 | Nav pill | `#ffffff` on ink | Active tab only |
 
 Buttons: white fill + black Angie (primary), ink fill + white hairline (secondary). Hover on primary inverts to ghost white. Do not use gold CTAs.
@@ -75,9 +75,9 @@ Lockups follow the poster: small event name, large section title, serif tagline,
 
 The world is one continuous night:
 
-1. **Hero** — looping stargate film (`VideoBackground` + `stargate-bg.mp4`), dark scrim, radial vignette. Wordmark is the COS 2026 logo, masked so it sits in the portal light.
-2. **Tickets and later sections** — still of the same landscape (`stargate-poster.webp`) anchored to the lower half, opacity ~0.7, graded back to ink at the top so headlines sit on sky. Optional WebGL `Starfield` for live sky; CSS `.starfield` is the fallback.
-3. **Vignette** — always darken edges. Type must not fight the planet or the portal.
+1. **Hero.** Looping stargate film (`VideoBackground` + `stargate-bg.mp4`), dark scrim, radial vignette. Wordmark is the COS 2026 logo, masked so it sits in the portal light.
+2. **Tickets and later sections.** Still of the same landscape (`stargate-poster.webp`) anchored to the lower half, opacity ~0.7, graded back to ink at the top so headlines sit on sky. Optional WebGL `Starfield` for live sky; CSS `.starfield` is the fallback.
+3. **Vignette.** Always darken edges. Type must not fight the planet or the portal.
 
 Do not collage unrelated Halloween stock. If you add photography, grade it into this lunar blue-black.
 

@@ -60,7 +60,7 @@ export default function Hero() {
         custom={0.4}
         className="relative z-10 mt-2 font-heading text-base tracking-widest text-white sm:mt-4 sm:text-2xl"
       >
-        30<sup className="text-[0.6em]">TH</sup> — 31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
+        30<sup className="text-[0.6em]">TH</sup> – 31<sup className="text-[0.6em]">ST</sup> OCTOBER 2026
       </motion.p>
 
       <motion.p

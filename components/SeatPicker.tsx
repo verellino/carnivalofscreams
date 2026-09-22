@@ -63,7 +63,7 @@ export default function SeatPicker({
               type="button"
               disabled={taken}
               aria-pressed={selected}
-              aria-label={taken ? `${item.label} — taken` : item.label}
+              aria-label={taken ? `${item.label}, taken` : item.label}
               onClick={() => {
                 setSelectedSeatId(item.id);
                 setError(null);

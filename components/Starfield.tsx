@@ -16,7 +16,7 @@ uniform float uMotion;
 
 // Celestial pole, off-canvas to the upper left. Everything rotates about it.
 const vec2  POLE  = vec2(-1.9, 1.25);
-const float OMEGA = 0.010;  // rad/s — one revolution in ~10 min
+const float OMEGA = 0.010;  // rad/s, one revolution in ~10 min
 const float EXPO  = 1.5;    // shutter time, in seconds, for the motion-blur trail
 
 float hash21(vec2 p) {
@@ -111,7 +111,7 @@ void main() {
   float ang = -uTime * OMEGA * uMotion;
   vec2  q   = rot(p - POLE, ang) + POLE;
 
-  // Atmospheric shimmer — a slow refractive warp, strongest on the near layer.
+  // Atmospheric shimmer, a slow refractive warp, strongest on the near layer.
   vec2 w = vec2(
     fbm(q * 2.2 + vec2(0.0, uTime * 0.050)),
     fbm(q * 2.2 + vec2(7.3, uTime * -0.042))

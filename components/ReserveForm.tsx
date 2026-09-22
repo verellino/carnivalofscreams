@@ -347,8 +347,8 @@ export default function ReserveForm({
                 <span className="font-heading text-[11px] tracking-[0.22em] text-gold-bright">
                   Selected
                 </span>{" "}
-                {table.name} · {table.furniture} · {table.seats} pax — lit up on
-                the floor plan.
+                {table.name} · {table.furniture} · {table.seats} pax. Lit up
+                on the floor plan.
               </p>
             ) : null}
             <p className="mt-4 text-xs text-white/40">
@@ -394,7 +394,7 @@ export default function ReserveForm({
                     type="button"
                     disabled={taken}
                     aria-pressed={selected}
-                    aria-label={taken ? `${item.label} — taken` : item.label}
+                    aria-label={taken ? `${item.label}, taken` : item.label}
                     onClick={() => {
                       setSeatId(item.id);
                       setError(null);
@@ -509,11 +509,11 @@ export default function ReserveForm({
             </p>
             <p>
               <span className="text-white/40">Booking fee</span>{" "}
-              {table ? formatIdr(table.priceIdr) : "—"}
+              {table ? formatIdr(table.priceIdr) : "Not set"}
             </p>
             <p>
               <span className="text-white/40">Minimum spend</span>{" "}
-              {table ? `${formatIdr(table.minSpendIdr)} at the venue` : "—"}
+              {table ? `${formatIdr(table.minSpendIdr)} at the venue` : "Not set"}
             </p>
           </div>
         ) : null}
