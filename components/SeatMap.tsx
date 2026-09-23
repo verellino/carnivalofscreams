@@ -1,19 +1,40 @@
-import { getAreaOutline, VENUE_MAP } from "@/lib/venue-areas";
+"use client";
+
+import { getSeat, seatsForPackage } from "@/lib/seats";
+import type { TablePackageId } from "@/lib/tables";
+import { getAreaOutline, TABLE_POINTS, VENUE_MAP } from "@/lib/venue-areas";
 
 type Props = {
   className?: string;
   /** Area to spotlight on the plan; everything else dims behind it. */
   highlightAreaId?: string | null;
   highlightLabel?: string;
+  /** Table to single out inside the highlighted area. */
+  highlightSeatId?: string | null;
+  takenSeatIds?: string[];
+  /** When given, tables on the plan become tap targets. */
+  onSelectSeat?: (seatId: string) => void;
 };
+
+const RING = 30;
 
 export default function SeatMap({
   className,
   highlightAreaId,
   highlightLabel,
+  highlightSeatId,
+  takenSeatIds = [],
+  onSelectSeat,
 }: Props) {
   const outline = getAreaOutline(highlightAreaId);
-  const frame = `M0,0 H${VENUE_MAP.width} V${VENUE_MAP.height} H0 Z`;
+  const tables = highlightAreaId
+    ? seatsForPackage(highlightAreaId as TablePackageId).flatMap((seat) => {
+        const point = TABLE_POINTS[seat.short];
+        return point ? [{ seat, point }] : [];
+      })
+    : [];
+  const selected = highlightSeatId ? getSeat(highlightSeatId) : undefined;
+  const selectedPoint = selected ? TABLE_POINTS[selected.short] : undefined;
 
   return (
     <div
@@ -25,29 +46,126 @@ export default function SeatMap({
         alt={VENUE_MAP.alt}
         className="h-auto w-full"
       />
-      {outline ? (
+      {tables.length > 0 ? (
         <svg
           viewBox={`0 0 ${VENUE_MAP.width} ${VENUE_MAP.height}`}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          role="img"
+          className={`absolute inset-0 h-full w-full ${
+            onSelectSeat ? "" : "pointer-events-none"
+          }`}
+          role={onSelectSeat ? "group" : "img"}
           aria-label={
-            highlightLabel
-              ? `${highlightLabel} highlighted on the floor plan`
-              : "Selected area highlighted on the floor plan"
+            selected
+              ? `${selected.label} highlighted on the floor plan`
+              : highlightLabel
+                ? `${highlightLabel} highlighted on the floor plan`
+                : "Selected area highlighted on the floor plan"
           }
         >
-          <path
-            d={`${frame} ${outline}`}
-            fillRule="evenodd"
+          <defs>
+            <mask id="area-cutout">
+              <rect width="100%" height="100%" fill="white" />
+              {outline ? <path d={outline} fill="black" /> : null}
+              {tables.map(({ seat, point }) => (
+                <circle
+                  key={seat.id}
+                  cx={point[0]}
+                  cy={point[1]}
+                  r={RING + 8}
+                  fill="black"
+                />
+              ))}
+            </mask>
+          </defs>
+          <rect
+            width="100%"
+            height="100%"
             fill="rgba(5, 3, 8, 0.72)"
+            mask="url(#area-cutout)"
           />
-          <path
-            d={outline}
-            fill="rgba(243, 207, 138, 0.16)"
-            stroke="var(--gold-bright)"
-            strokeWidth={9}
-            strokeLinejoin="round"
-          />
+          {outline ? (
+            <path
+              d={outline}
+              fill="none"
+              stroke="var(--gold-bright)"
+              strokeOpacity={selected ? 0.35 : 0.9}
+              strokeWidth={4}
+              strokeLinejoin="round"
+            />
+          ) : null}
+          {tables.map(({ seat, point }) => {
+            const taken = takenSeatIds.includes(seat.id);
+            const ring = (
+              <circle
+                cx={point[0]}
+                cy={point[1]}
+                r={RING}
+                fill={taken ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.01)"}
+                stroke={taken ? "rgba(255,255,255,0.25)" : "var(--gold-bright)"}
+                strokeOpacity={selected ? 0.35 : 0.7}
+                strokeWidth={2.5}
+                strokeDasharray={taken ? "6 6" : undefined}
+              />
+            );
+            if (!onSelectSeat || taken) {
+              return (
+                <g key={seat.id} className="pointer-events-none">
+                  {ring}
+                </g>
+              );
+            }
+            return (
+              <g
+                key={seat.id}
+                role="button"
+                tabIndex={0}
+                aria-label={seat.label}
+                aria-pressed={highlightSeatId === seat.id}
+                className="cursor-pointer outline-none [&>circle]:hover:stroke-white"
+                onClick={() => onSelectSeat(seat.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectSeat(seat.id);
+                  }
+                }}
+              >
+                {ring}
+              </g>
+            );
+          })}
+          {selectedPoint ? (
+            <g className="pointer-events-none">
+              <circle
+                cx={selectedPoint[0]}
+                cy={selectedPoint[1]}
+                r={RING + 6}
+                fill="rgba(243, 207, 138, 0.22)"
+                stroke="var(--gold-bright)"
+                strokeWidth={5}
+              />
+              <circle
+                cx={selectedPoint[0]}
+                cy={selectedPoint[1]}
+                r={RING + 6}
+                fill="none"
+                stroke="var(--gold-bright)"
+                strokeWidth={3}
+              >
+                <animate
+                  attributeName="r"
+                  values={`${RING + 6};${RING + 26}`}
+                  dur="1.6s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0.9;0"
+                  dur="1.6s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+            </g>
+          ) : null}
         </svg>
       ) : null}
     </div>

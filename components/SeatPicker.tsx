@@ -48,7 +48,16 @@ export default function SeatPicker({
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
-      <SeatMap highlightAreaId={packageId} highlightLabel={area?.name} />
+      <SeatMap
+        highlightAreaId={packageId}
+        highlightLabel={area?.name}
+        highlightSeatId={selectedSeatId}
+        takenSeatIds={takenSeatIds}
+        onSelectSeat={(id) => {
+          setSelectedSeatId(id);
+          setError(null);
+        }}
+      />
       <p className="mt-3 mb-8 text-sm text-white/45">
         {area?.name} is lit up on the plan. Confirm your table below.
       </p>
