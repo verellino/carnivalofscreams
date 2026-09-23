@@ -23,6 +23,7 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
     seatId: null,
   });
   const [takenSeatIds, setTakenSeatIds] = useState<string[]>([]);
+  const [seatId, setSeatId] = useState<string | null>(null);
 
   const selectedSeat = preview.seatId ? getSeat(preview.seatId) : undefined;
   const selectedArea = preview.packageId
@@ -69,10 +70,15 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
           <SeatMap
             highlightAreaId={preview.packageId}
             highlightLabel={selectedArea?.name}
+            highlightSeatId={preview.seatId}
+            takenSeatIds={takenSeatIds}
+            onSelectSeat={preview.step === "table" ? setSeatId : undefined}
           />
           <p className="mt-3 text-sm text-white/45">
             {selectedArea
-              ? `${selectedArea.name} is lit up on the plan. Tables are booked from the buttons, not the map.`
+              ? selectedSeat
+                ? `${selectedSeat.label} is marked on the plan.`
+                : `${selectedArea.name} is lit up on the plan. Tap a table on the map or use the list.`
               : "Floor plan of the venue. Choose your area in the form and it lights up here."}
           </p>
         </section>
@@ -83,6 +89,8 @@ export default function ReserveWorkspace({ enabled, checkoutJsUrl }: Props) {
               enabled={enabled}
               checkoutJsUrl={checkoutJsUrl}
               takenSeatIds={takenSeatIds}
+              seatId={seatId}
+              onSeatChange={setSeatId}
               onPreviewChange={onPreviewChange}
             />
           </div>

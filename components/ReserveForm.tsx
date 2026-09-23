@@ -28,6 +28,9 @@ type Props = {
   enabled: boolean;
   checkoutJsUrl: string;
   takenSeatIds: string[];
+  /** Seat selection is lifted so the floor plan can drive it too. */
+  seatId: string | null;
+  onSeatChange: (seatId: string | null) => void;
   onPreviewChange?: (preview: ReservePreview) => void;
 };
 
@@ -62,6 +65,8 @@ export default function ReserveForm({
   enabled,
   checkoutJsUrl,
   takenSeatIds,
+  seatId,
+  onSeatChange,
   onPreviewChange,
 }: Props) {
   const [step, setStep] = useState<ReserveStep>("night");
@@ -72,7 +77,6 @@ export default function ReserveForm({
   const [phone, setPhone] = useState("");
   const [nightId, setNightId] = useState<NightId>("oct-30");
   const [packageId, setPackageId] = useState<TablePackageId | null>(null);
-  const [seatId, setSeatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const orderIdRef = useRef<string | null>(null);
@@ -266,7 +270,7 @@ export default function ReserveForm({
                     aria-pressed={selected}
                     onClick={() => {
                       setNightId(item.id);
-                      setSeatId(null);
+                      onSeatChange(null);
                       setPackageId(null);
                       setError(null);
                     }}
@@ -310,7 +314,7 @@ export default function ReserveForm({
                     aria-pressed={selected}
                     onClick={() => {
                       setPackageId(pack.id);
-                      setSeatId(null);
+                      onSeatChange(null);
                       setError(null);
                     }}
                     className={`border p-4 text-left transition-colors ${
@@ -376,7 +380,7 @@ export default function ReserveForm({
               <button
                 type="button"
                 onClick={() => {
-                  setSeatId(null);
+                  onSeatChange(null);
                   setStep("area");
                 }}
                 className="font-heading text-[10px] tracking-[0.22em] text-white/55 underline underline-offset-4 transition-colors hover:text-white"
@@ -396,7 +400,7 @@ export default function ReserveForm({
                     aria-pressed={selected}
                     aria-label={taken ? `${item.label}, taken` : item.label}
                     onClick={() => {
-                      setSeatId(item.id);
+                      onSeatChange(item.id);
                       setError(null);
                     }}
                     className={`min-w-12 border px-2 py-2 text-center font-heading text-[11px] tracking-[0.12em] transition-colors ${
